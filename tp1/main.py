@@ -28,16 +28,18 @@ def init():
 				os.remove(file_path)
 
 def usage():
-	print('usage: python main.py [options]')
-	print('-h --help:	 print this screen')
-	print('-c --config=:  configuration file')
+	print('usage:	python main.py [options]')
+	print('-h --help:	print this screen')
+	print('-c --config=:	configuration file')
+	print('-b --border_control:	The distance is calculated if the border are traspasable')
+	print('--particle-number=:	Number of particle to be animated in color')
 
 def parse_arguments():
 	arguments = {
 		'config': './config/config.json',
 	}
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'hc:tn', ['help', 'config='])
+		opts, args = getopt.getopt(sys.argv[1:], 'hc:tn', ['help', 'config=', 'particle-number', 'border'])
 	
 	except getopt.GetoptError as err:
 		print str(err)  # will print something like "option -a not recognized"
@@ -50,6 +52,10 @@ def parse_arguments():
 			sys.exit()
 		elif o in ('-c', '--config'):
 			arguments['config'] = a
+		elif o in ('--p_index'):
+			arguments['selected'] = a
+		elif o in ('-b','--border'):
+			arguments['border_control'] = a
 		else:
 			assert False, 'unknown option `' + o + '`' 
 
@@ -143,14 +149,12 @@ def brute_force(L, rc, N, in_particules = [], border_control= True):
 def main():
 
 	#TODO border in brute force and cell
-	# Result to console, time OK
-
+	#TODO parameter border_control and selected
+	
 	arguments = parse_arguments()
 
-	#TODO arguments get border_control
-	border_control = True
-	#TODO arguments get selected
-	selected = 1
+	border_control = arguments['border_control'] if 'border_control' in arguments else True
+	selected = arguments['selected'] if 'selected' in arguments else 1
 
 	init()
 
