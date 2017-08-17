@@ -9,11 +9,12 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import getopt
 import random
+import time
 
 colored_traceback.add_hook()
 
 def init():
-	folders = ['images','output']
+	folders = ['output']
 	for folder in folders:
 		folder_path = os.path.join('.', folder)
 		if not os.path.exists(folder_path):
@@ -57,7 +58,7 @@ def parse_arguments():
 def noop():
 	pass
 
-def get_neightbour(field, particule, r ,rc, M, border_control):
+def get_neightbours(field, particule, rc, M, L, border_control):
 	possible_neightbours = []
 	x_c = particule["x_c"]
 	y_c = particule["y_c"]
@@ -78,15 +79,23 @@ def get_neightbour(field, particule, r ,rc, M, border_control):
 	possible_neightbours.extend(field[xp1][y_c]) if border_control and xp1 < M  else noop()
 	possible_neightbours.extend(field[xp1][yp1]) if border_control and (xp1 < M and yp1 < M) else noop()
 	
-	neightbours = filter(lambda part: (part["x"]-x)**2+(part["y"]-y)**2 < (rc + r)**2
-		and particule["part"] != part["part"], possible_neightbours)
+	#TODO Border control
+	if border_control:
+		neightbours = filter(lambda part: (
+			(L-abs(part["x"]-x))**2+(L-abs(part["y"]-y))**2 < (rc + part["r"]+ particule["r"])**2
+			or
+			(part["x"]-x)**2+(part["y"]-y)**2 < (rc + part["r"]+ particule["r"])**2
+			)
+			and particule["part"] != part["part"], possible_neightbours)
+	else:
+		neightbours = filter(lambda part: (part["x"]-x)**2+(part["y"]-y)**2 < (rc + part["r"]+ particule["r"])**2
+			and particule["part"] != part["part"], possible_neightbours)
+	
+	neightbours = map(lambda particule: particule["part"], neightbours)
 	return neightbours
 
-def analyse_system(M, L, rc, N):
-	#reduce(lambda accum, i: acumm.add(i,reduce(lambda accum_2, j: accum_2.add(j,{}),xrange(1,M),{})),xrange(1,M),{})
-
-	given = 1
-
+def analyse_system(M, L, rc, N, in_particules = [], border_control= True):
+	
 	field = {} 
 	for x in xrange(0, M):
 		field_x = {} 
@@ -96,28 +105,52 @@ def analyse_system(M, L, rc, N):
 
 	particules = []
 
-	for part in xrange(1, N):
-		x = random.randint(0, L-1)
-		y = random.randint(0, L-1)
-		particules.append({"part":part, "x":x, "y":y, "x_c":x/M, "y_c":y/M})
-		field[x/M][y/M].append({"part":part, "x":x, "y":y, "x_c":x/M, "y_c":y/M})
+	for index in xrange(0, len(in_particules)):
+		x = in_particules[index]["x"]
+		y = in_particules[index]["y"]
+		particules.append({"part":index, "x":x, "y":y, "x_c":x/M, "y_c":y/M, "r":in_particules[index]["r"]})
+		field[x/M][y/M].append({"part":index, "x":x, "y":y, "x_c":x/M, "y_c":y/M, "r":in_particules[index]["r"]})
 
-	#TODO ****************************************************r of part or generic **** border control by parameter
-	neightbours = map(lambda particule: get_neightbour(field,particule,r=0,rc=rc, M=M, border_control=True), particules)
+	neightbours = map(lambda particule: (particule["part"], get_neightbours(field,particule, rc=rc, M=M, L=L, border_control=border_control)), particules)
+	return neightbours
 
-	import ipdb
-	ipdb.set_trace()
+def brute_force(L, rc, N, in_particules = [], border_control= True):
+	
+	neightbours = []
+	
+	for i in xrange(0,len(in_particules)):
+		xi = in_particules[i]["x"]
+		yi = in_particules[i]["y"]
+		
+		i_neightbours = []
 
-	a = 5
+		for j in xrange(0,len(in_particules)):
+			xj = in_particules[j]["x"]
+			yj = in_particules[j]["y"]
+		
+			dif_x__2 = (xi-xj)**2 if border_control and (xi-xj)**2 > (L/2)**2 else (L-abs(xi-xj))**2 
+			dif_y__2 = (yi-yj)**2 if border_control and (yi-yj)**2 > (L/2)**2 else (L-abs(yi-yj))**2
+			dif_x__2 = (xi-xj)**2 
+			dif_y__2 = (yi-yj)**2
 
+			if dif_x__2 + dif_y__2 < (rc + in_particules[i]["r"] + in_particules[j]["r"])**2 and i != j:
+				i_neightbours.append(j)
+
+		neightbours.append((i,i_neightbours))
+
+	return neightbours
 
 def main():
 
-	#TODO time millis
-	#TODO complete generation
-	#TODO brute force
+	#TODO border in brute force and cell
+	# Result to console, time OK
 
 	arguments = parse_arguments()
+
+	#TODO arguments get border_control
+	border_control = True
+	#TODO arguments get selected
+	selected = 1
 
 	init()
 
@@ -127,13 +160,39 @@ def main():
 
 	pprint.pprint(data)
 
-	M = data["M"] or 6
-	L = data["L"] or 2
-	rc = data["rc"] or 1
-	r = data["r"] or 0
-	N = data["N"] or 10
+	M = data["M"]
+	L = data["L"]
+	rc = data["rc"]
+	r = data["r"]
+	N = data["N"]
+	#TODO ACTIVATE particules = data["particules"]
+	particules = []
 
-	analyse_system(M = M, L = L, rc = rc, N = N)
+	for part in xrange(1, N+1):
+		x = random.randint(0, L-1)
+		y = random.randint(0, L-1)
+		particules.append({"x":x,"y":y,"r":0})
+
+
+	start_time = time.time()
+
+	print analyse_system(M = M, L = L, rc = rc, N = N, border_control = border_control, in_particules = particules)
+
+	run_time = time.time() - start_time
+
+	print run_time
+
+	start_time = time.time()
+
+	a = brute_force(L = L, rc = rc, N = N, border_control = border_control, in_particules=particules)
+
+	run_time = time.time() - start_time
+
+	print run_time
+
+	ipdb.set_trace()
+
+
 
 if __name__ == '__main__':
 	main()
