@@ -150,6 +150,7 @@ def main():
 
 	#TODO border in brute force and cell
 	#TODO parameter border_control and selected
+	#TODO to line 88 and 173
 	
 	arguments = parse_arguments()
 
