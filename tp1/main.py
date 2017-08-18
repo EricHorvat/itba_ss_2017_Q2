@@ -64,17 +64,17 @@ def parse_arguments():
 def noop():
 	pass
 
-def get_neightbours(field, particule, rc, M, L, border_control):
+def get_neightbours(field, particle, rc, M, L, border_control):
 	possible_neightbours = []
-	x_c = particule["x_c"]
-	y_c = particule["y_c"]
-	x = particule["x"]
-	y = particule["y"]
-	xm1 = (x_c-1)%M
-	xp1 = (x_c+1)%M
-	ym1 = (y_c-1)%M
-	yp1 = (y_c+1)%M
-	x2py2=x**2+y**2
+	x_c = particle["x_c"]
+	y_c = particle["y_c"]
+	x = particle["x"]
+	y = particle["y"]
+	xm1 = (x_c - 1) % M
+	xp1 = (x_c + 1) % M
+	ym1 = (y_c - 1) % M
+	yp1 = (y_c + 1) % M
+	x2py2 = x ** 2 + y ** 2
 	possible_neightbours.extend(field[xm1][ym1]) if border_control or (xm1 >= 0 and ym1 >= 0)  else noop()
 	possible_neightbours.extend(field[xm1][y_c]) if border_control or xm1 >= 0  else noop()
 	possible_neightbours.extend(field[xm1][yp1]) if border_control or (xm1 >= 0 and yp1 < M)  else noop()
@@ -88,20 +88,22 @@ def get_neightbours(field, particule, rc, M, L, border_control):
 	#TODO Border control
 	if border_control:
 		neightbours = filter(lambda part: (
-			(L-abs(part["x"]-x))**2+(L-abs(part["y"]-y))**2 < (rc + part["r"]+ particule["r"])**2
+			(L - abs(part["x"]-x))**2+(L-abs(part["y"]-y))**2 < (rc + part["r"]+ particle["r"])**2
 			or
-			(part["x"]-x)**2+(part["y"]-y)**2 < (rc + part["r"]+ particule["r"])**2
+			(part["x"]-x)**2+(part["y"]-y)**2 < (rc + part["r"]+ particle["r"])**2
 			)
-			and particule["part"] != part["part"], possible_neightbours)
+			and particle["part"] != part["part"], possible_neightbours)
 	else:
-		neightbours = filter(lambda part: (part["x"]-x)**2+(part["y"]-y)**2 < (rc + part["r"]+ particule["r"])**2
-			and particule["part"] != part["part"], possible_neightbours)
+		neightbours = filter(lambda part: (part["x"]-x)**2+(part["y"]-y)**2 < (rc + part["r"]+ particle["r"])**2
+			and particle["part"] != part["part"], possible_neightbours)
 	
-	neightbours = map(lambda particule: particule["part"], neightbours)
+	neightbours = map(lambda particle: particle["part"], neightbours)
 	return neightbours
 
-def analyse_system(M, L, rc, N, in_particules = [], border_control= True):
+def analyse_system(M, L, rc, N, in_particles = [], border_control= True):
 	
+	print('analizing system')
+
 	field = {} 
 	for x in xrange(0, M):
 		field_x = {} 
@@ -109,40 +111,40 @@ def analyse_system(M, L, rc, N, in_particules = [], border_control= True):
 			field_x[y]= []
 		field[x] = field_x
 
-	particules = []
+	particles = []
 
-	for index in xrange(0, len(in_particules)):
-		x = in_particules[index]["x"]
-		y = in_particules[index]["y"]
-		particules.append({"part":index, "x":x, "y":y, "x_c":x/M, "y_c":y/M, "r":in_particules[index]["r"]})
-		field[x/M][y/M].append({"part":index, "x":x, "y":y, "x_c":x/M, "y_c":y/M, "r":in_particules[index]["r"]})
+	for index in xrange(0, len(in_particles)):
+		x = in_particles[index]["x"]
+		y = in_particles[index]["y"]
+		particles.append({"part": index, "x": x, "y": y, "x_c": x / M, "y_c": y / M, "r": in_particles[index]["r"]})
+		field[x / M][y / M].append({"part": index, "x": x, "y": y, "x_c": x / M, "y_c": y / M, "r": in_particles[index]["r"]})
 
-	neightbours = map(lambda particule: (particule["part"], get_neightbours(field,particule, rc=rc, M=M, L=L, border_control=border_control)), particules)
+	neightbours = map(lambda particle: (particle["part"], get_neightbours(field, particle, rc = rc, M = M, L = L, border_control = border_control)), particles)
 	return neightbours
 
-def brute_force(L, rc, N, in_particules = [], border_control= True):
+def brute_force(L, rc, N, in_particles = [], border_control= True):
 	
 	neightbours = []
 	
-	for i in xrange(0,len(in_particules)):
-		xi = in_particules[i]["x"]
-		yi = in_particules[i]["y"]
+	for i in xrange(0,len(in_particles)):
+		xi = in_particles[i]["x"]
+		yi = in_particles[i]["y"]
 		
 		i_neightbours = []
 
-		for j in xrange(0,len(in_particules)):
-			xj = in_particules[j]["x"]
-			yj = in_particules[j]["y"]
+		for j in xrange(0,len(in_particles)):
+			xj = in_particles[j]["x"]
+			yj = in_particles[j]["y"]
 		
 			dif_x__2 = (xi-xj)**2 if border_control and (xi-xj)**2 > (L/2)**2 else (L-abs(xi-xj))**2 
 			dif_y__2 = (yi-yj)**2 if border_control and (yi-yj)**2 > (L/2)**2 else (L-abs(yi-yj))**2
 			dif_x__2 = (xi-xj)**2 
 			dif_y__2 = (yi-yj)**2
 
-			if dif_x__2 + dif_y__2 < (rc + in_particules[i]["r"] + in_particules[j]["r"])**2 and i != j:
+			if dif_x__2 + dif_y__2 < (rc + in_particles[i]["r"] + in_particles[j]["r"])**2 and i != j:
 				i_neightbours.append(j)
 
-		neightbours.append((i,i_neightbours))
+		neightbours.append((i, i_neightbours))
 
 	return neightbours
 
@@ -170,30 +172,30 @@ def main():
 	rc = data["rc"]
 	r = data["r"]
 	N = data["N"]
-	#TODO ACTIVATE particules = data["particules"]
-	particules = []
+	#TODO ACTIVATE particles = data["particles"]
+	particles = []
 
-	for part in xrange(1, N+1):
-		x = random.randint(0, L-1)
-		y = random.randint(0, L-1)
-		particules.append({"x":x,"y":y,"r":0})
+	for part in xrange(1, N + 1):
+		x = random.randint(0, L - 1)
+		y = random.randint(0, L - 1)
+		particles.append({ "x": x, "y": y, "r": 0 })
 
-
-	start_time = time.time()
-
-	print analyse_system(M = M, L = L, rc = rc, N = N, border_control = border_control, in_particules = particules)
-
-	run_time = time.time() - start_time
-
-	print run_time
 
 	start_time = time.time()
 
-	a = brute_force(L = L, rc = rc, N = N, border_control = border_control, in_particules=particules)
+	print analyse_system(M = M, L = L, rc = rc, N = N, border_control = border_control, in_particles = particles)
 
 	run_time = time.time() - start_time
 
-	print run_time
+	print 'Run Time: ', run_time
+
+	start_time = time.time()
+
+	a = brute_force(L = L, rc = rc, N = N, border_control = border_control, in_particles=particles)
+
+	run_time = time.time() - start_time
+
+	print 'Brute Force Run Time: ', run_time
 
 	ipdb.set_trace()
 

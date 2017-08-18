@@ -71,11 +71,11 @@ def main():
 
 	L = data["L"] or 2
 	N = data["N"] or 10
-	particules = []
+	particles = []
 	
 	for part in xrange(1, N):
 		x = random.randint(1, L)
 		y = random.randint(1, L)
-		particules.append([x,y])
+		particles.append([x,y])
 	
 	// OUT
