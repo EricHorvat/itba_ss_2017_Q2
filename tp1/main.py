@@ -183,9 +183,22 @@ def main():
 
 	start_time = time.time()
 
-	print analyse_system(M = M, L = L, rc = rc, N = N, border_control = border_control, in_particles = particles)
+	neighbours = analyse_system(M = M, L = L, rc = rc, N = N, border_control = border_control, in_particles = particles)
 
 	run_time = time.time() - start_time
+
+	with open('output/neighbours.json', 'w') as outfile:
+		json.dump({
+			'neighbours': neighbours,
+			'particles': particles,
+			'world': {
+				'M': M,
+				'L': L,
+				'rc': rc,
+				'r': r,
+				'N': N
+			}
+		}, outfile)
 
 	print 'Run Time: ', run_time
 
@@ -196,9 +209,6 @@ def main():
 	run_time = time.time() - start_time
 
 	print 'Brute Force Run Time: ', run_time
-
-	ipdb.set_trace()
-
 
 
 if __name__ == '__main__':
