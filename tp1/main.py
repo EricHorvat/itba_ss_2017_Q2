@@ -4,7 +4,7 @@ import pprint
 import colored_traceback
 import sys
 import os
-import numpy as np
+from math import floor
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import getopt
@@ -116,8 +116,8 @@ def analyse_system(M, L, rc, N, in_particles = [], border_control= False):
 	for index in xrange(0, len(in_particles)):
 		x = in_particles[index]["x"]
 		y = in_particles[index]["y"]
-		particles.append({"part": index, "x": x, "y": y, "x_c": x / M, "y_c": y / M, "r": in_particles[index]["r"]})
-		field[x / M][y / M].append({"part": index, "x": x, "y": y, "x_c": x / M, "y_c": y / M, "r": in_particles[index]["r"]})
+		particles.append({"part": index, "x": x, "y": y, "x_c": int(floor(x / M)), "y_c": int(floor(y / M)), "r": in_particles[index]["r"]})
+		field[int(floor(x / M))][int(floor(y / M))].append({"part": index, "x": x, "y": y, "x_c": int(floor(x / M)), "y_c": int(floor(y / M)), "r": in_particles[index]["r"]})
 
 	neightbours = map(lambda particle: (particle["part"], get_neightbours(field, particle, rc = rc, M = M, L = L, border_control = border_control)), particles)
 	return neightbours
@@ -154,8 +154,8 @@ def brute_force(L, rc, N, in_particles = [], border_control= False):
 def generate(N,L):
 	particles = []
 	for part in xrange(1, N + 1):
-		x = random.randint(0, L - 1)
-		y = random.randint(0, L - 1)
+		x = random.random() * (L - 1)
+		y = random.random() * (L - 1)
 		particles.append({ "x": x, "y": y, "r": 0 })
 	return particles
 
