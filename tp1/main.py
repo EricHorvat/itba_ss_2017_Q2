@@ -31,15 +31,14 @@ def usage():
 	print('usage:	python main.py [options]')
 	print('-h --help:	print this screen')
 	print('-c --config=:	configuration file')
-	print('-b --border_control:	The distance is calculated if the border are traspasable')
-	print('--particle-number=:	Number of particle to be animated in color')
+	print('-b --border:	The distance is calculated if the border are traspasable')
 
 def parse_arguments():
 	arguments = {
 		'config': './config/config.json',
 	}
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'hc:tn', ['help', 'config=', 'particle-number', 'border'])
+		opts, args = getopt.getopt(sys.argv[1:], 'hc:tn', ['help', 'config=', 'border'])
 	
 	except getopt.GetoptError as err:
 		print str(err)  # will print something like "option -a not recognized"
@@ -52,10 +51,8 @@ def parse_arguments():
 			sys.exit()
 		elif o in ('-c', '--config'):
 			arguments['config'] = a
-		elif o in ('--p_index'):
-			arguments['selected'] = a
 		elif o in ('-b','--border'):
-			arguments['border_control'] = a
+			arguments['border_control'] = True
 		else:
 			assert False, 'unknown option `' + o + '`' 
 
@@ -80,15 +77,20 @@ def get_neightbours(field, particle, rc, M, L, border_control):
 	possible_neightbours.extend(field[xm1][yp1]) if border_control or (xm1 >= 0 and yp1 < M)  else noop()
 	possible_neightbours.extend(field[x_c][ym1]) if border_control or ym1 >= 0  else noop()
 	possible_neightbours.extend(field[x_c][y_c]) 
-	possible_neightbours.extend(field[x_c][yp1]) if border_control and ym1 < M  else noop()
-	possible_neightbours.extend(field[xp1][ym1]) if border_control and (xp1 < M and ym1 >= 0) else noop()
-	possible_neightbours.extend(field[xp1][y_c]) if border_control and xp1 < M  else noop()
-	possible_neightbours.extend(field[xp1][yp1]) if border_control and (xp1 < M and yp1 < M) else noop()
+	possible_neightbours.extend(field[x_c][yp1]) if border_control or ym1 < M  else noop()
+	possible_neightbours.extend(field[xp1][ym1]) if border_control or (xp1 < M and ym1 >= 0) else noop()
+	possible_neightbours.extend(field[xp1][y_c]) if border_control or xp1 < M  else noop()
+	possible_neightbours.extend(field[xp1][yp1]) if border_control or (xp1 < M and yp1 < M) else noop()
 	
 	#TODO Border control
+	#ipdb.set_trace()
 	if border_control:
-		neightbours = filter(lambda part: (
+		neightbours = filter(lambda part: ( 
 			(L - abs(part["x"]-x))**2+(L-abs(part["y"]-y))**2 < (rc + part["r"]+ particle["r"])**2
+			or 
+			(part["x"]-x)**2+(L-abs(part["y"]-y))**2 < (rc + part["r"]+ particle["r"])**2
+			or 
+			(L - abs(part["x"]-x))**2+(part["y"]-y)**2 < (rc + part["r"]+ particle["r"])**2
 			or
 			(part["x"]-x)**2+(part["y"]-y)**2 < (rc + part["r"]+ particle["r"])**2
 			)
@@ -100,7 +102,7 @@ def get_neightbours(field, particle, rc, M, L, border_control):
 	neightbours = map(lambda particle: particle["part"], neightbours)
 	return neightbours
 
-def analyse_system(M, L, rc, N, in_particles = [], border_control= True):
+def analyse_system(M, L, rc, N, in_particles = [], border_control= False):
 	
 	print('analizing system')
 
@@ -122,7 +124,7 @@ def analyse_system(M, L, rc, N, in_particles = [], border_control= True):
 	neightbours = map(lambda particle: (particle["part"], get_neightbours(field, particle, rc = rc, M = M, L = L, border_control = border_control)), particles)
 	return neightbours
 
-def brute_force(L, rc, N, in_particles = [], border_control= True):
+def brute_force(L, rc, N, in_particles = [], border_control= False):
 	
 	neightbours = []
 	
@@ -136,10 +138,10 @@ def brute_force(L, rc, N, in_particles = [], border_control= True):
 			xj = in_particles[j]["x"]
 			yj = in_particles[j]["y"]
 		
-			dif_x__2 = (xi-xj)**2 if border_control and (xi-xj)**2 > (L/2)**2 else (L-abs(xi-xj))**2 
-			dif_y__2 = (yi-yj)**2 if border_control and (yi-yj)**2 > (L/2)**2 else (L-abs(yi-yj))**2
-			dif_x__2 = (xi-xj)**2 
-			dif_y__2 = (yi-yj)**2
+			dif_x__2 = (L-abs(xi-xj))**2 if border_control and (xi-xj)**2 > (L/2)**2 else (xi-xj)**2 
+			dif_y__2 = (L-abs(yi-yj))**2 if border_control and (yi-yj)**2 > (L/2)**2 else (yi-yj)**2 
+			
+			#ipdb.set_trace()
 
 			if dif_x__2 + dif_y__2 < (rc + in_particles[i]["r"] + in_particles[j]["r"])**2 and i != j:
 				i_neightbours.append(j)
@@ -156,7 +158,7 @@ def main():
 	
 	arguments = parse_arguments()
 
-	border_control = arguments['border_control'] if 'border_control' in arguments else True
+	border_control = arguments['border_control'] if 'border_control' in arguments else False
 	selected = arguments['selected'] if 'selected' in arguments else 1
 
 	init()
@@ -170,10 +172,10 @@ def main():
 	M = data["M"]
 	L = data["L"]
 	rc = data["rc"]
-	r = data["r"]
 	N = data["N"]
 	#TODO ACTIVATE particles = data["particles"]
 	particles = []
+	r=0
 
 	for part in xrange(1, N + 1):
 		x = random.randint(0, L - 1)
@@ -184,6 +186,8 @@ def main():
 	start_time = time.time()
 
 	neighbours = analyse_system(M = M, L = L, rc = rc, N = N, border_control = border_control, in_particles = particles)
+
+	print neighbours
 
 	run_time = time.time() - start_time
 
@@ -205,6 +209,8 @@ def main():
 	start_time = time.time()
 
 	a = brute_force(L = L, rc = rc, N = N, border_control = border_control, in_particles=particles)
+
+	print a
 
 	run_time = time.time() - start_time
 
