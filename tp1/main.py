@@ -82,8 +82,6 @@ def get_neightbours(field, particle, rc, M, L, border_control):
 	possible_neightbours.extend(field[xp1][y_c]) if border_control or xp1 < M  else noop()
 	possible_neightbours.extend(field[xp1][yp1]) if border_control or (xp1 < M and yp1 < M) else noop()
 	
-	#TODO Border control
-	#ipdb.set_trace()
 	if border_control:
 		neightbours = filter(lambda part: ( 
 			(L - abs(part["x"]-x))**2+(L-abs(part["y"]-y))**2 < (rc + part["r"]+ particle["r"])**2
@@ -135,32 +133,39 @@ def brute_force(L, rc, N, in_particles = [], border_control= False):
 		i_neightbours = []
 
 		for j in xrange(0,len(in_particles)):
-			xj = in_particles[j]["x"]
-			yj = in_particles[j]["y"]
+			if j > i:
+				xj = in_particles[j]["x"]
+				yj = in_particles[j]["y"]
 		
-			dif_x__2 = (L-abs(xi-xj))**2 if border_control and (xi-xj)**2 > (L/2)**2 else (xi-xj)**2 
-			dif_y__2 = (L-abs(yi-yj))**2 if border_control and (yi-yj)**2 > (L/2)**2 else (yi-yj)**2 
+				dif_x__2 = (L-abs(xi-xj))**2 if border_control and (xi-xj)**2 > (L/2)**2 else (xi-xj)**2 
+				dif_y__2 = (L-abs(yi-yj))**2 if border_control and (yi-yj)**2 > (L/2)**2 else (yi-yj)**2 
 			
-			#ipdb.set_trace()
-
-			if dif_x__2 + dif_y__2 < (rc + in_particles[i]["r"] + in_particles[j]["r"])**2 and i != j:
-				i_neightbours.append(j)
+				if dif_x__2 + dif_y__2 < (rc + in_particles[i]["r"] + in_particles[j]["r"])**2 and i != j:
+					i_neightbours.append(j)
+			elif j < i:
+				a,b = neightbours[j] 
+				if i in b:
+					i_neightbours.append(j)
 
 		neightbours.append((i, i_neightbours))
 
 	return neightbours
 
+def generate(N,L):
+	particles = []
+	for part in xrange(1, N + 1):
+		x = random.randint(0, L - 1)
+		y = random.randint(0, L - 1)
+		particles.append({ "x": x, "y": y, "r": 0 })
+	return particles
+
+
 def main():
 
-	#TODO border in brute force and cell
-	#TODO parameter border_control and selected
-	#TODO to line 88 and 173
-	
 	arguments = parse_arguments()
 
 	border_control = arguments['border_control'] if 'border_control' in arguments else False
-	selected = arguments['selected'] if 'selected' in arguments else 1
-
+	
 	init()
 
 	with open(arguments['config']) as data_file:
@@ -169,20 +174,12 @@ def main():
 
 	pprint.pprint(data)
 
-	M = data["M"]
-	L = data["L"]
-	rc = data["rc"]
-	N = data["N"]
-	#TODO ACTIVATE particles = data["particles"]
-	particles = []
-	r=0
-
-	for part in xrange(1, N + 1):
-		x = random.randint(0, L - 1)
-		y = random.randint(0, L - 1)
-		particles.append({ "x": x, "y": y, "r": 0 })
-
-
+	M = data['world']["M"] if 'world' in data else data["M"] 
+	L = data['world']["L"] if 'world' in data else data["L"]
+	rc = data['world']["rc"] if 'world' in data else data["rc"]
+	N = data['world']["N"] if 'world' in data else data["N"]
+	particles = data['particles'] if 'particles' in data else generate(N,L)
+	
 	start_time = time.time()
 
 	neighbours = analyse_system(M = M, L = L, rc = rc, N = N, border_control = border_control, in_particles = particles)
@@ -199,7 +196,7 @@ def main():
 				'M': M,
 				'L': L,
 				'rc': rc,
-				'r': r,
+				'r': 0,
 				'N': N
 			}
 		}, outfile)
