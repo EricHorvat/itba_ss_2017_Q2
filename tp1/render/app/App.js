@@ -73,7 +73,7 @@ class App extends Component {
 	        			key={i}
 	        			cx={particle.x * 32}
 	        			cy={particle.y * 32}
-	        			r={5}
+	        			r={(particle.r + 0.1) * 32}
 	        			onClick={e => this.onShowNeighbours(e, i)}
 	        			onMouseEnter={e => this.onShowNeighbours(e, i)}
 	        			onMouseLeave={this.hideNeighbours}

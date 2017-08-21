@@ -31,6 +31,8 @@ def usage():
 	print('usage:	python main.py [options]')
 	print('-h --help:	print this screen')
 	print('-c --config=:	configuration file')
+	print('--random:	Set particle radius randomly from 0 to --radius parameter')
+	print('--radius=:	Set the radiius o random max radius')
 	print('-b --border:	The distance is calculated if the border are traspasable')
 
 def parse_arguments():
@@ -38,7 +40,7 @@ def parse_arguments():
 		'config': './config/config.json',
 	}
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'hc:tn', ['help', 'config=', 'border'])
+		opts, args = getopt.getopt(sys.argv[1:], 'hc:tn', ['help', 'config=', 'radius=', 'random', 'border'])
 	
 	except getopt.GetoptError as err:
 		print str(err)  # will print something like "option -a not recognized"
@@ -51,8 +53,12 @@ def parse_arguments():
 			sys.exit()
 		elif o in ('-c', '--config'):
 			arguments['config'] = a
+		elif o in ('--radius') and a >= 0:
+			arguments['max_r'] = float(a)
 		elif o in ('-b','--border'):
 			arguments['border_control'] = True
+		elif o in ('--random'):
+			arguments['fixed'] = False
 		else:
 			assert False, 'unknown option `' + o + '`' 
 
@@ -151,12 +157,13 @@ def brute_force(L, rc, N, in_particles = [], border_control= False):
 
 	return neightbours
 
-def generate(N,L):
+def generate(N, L, max_r, fixed):
 	particles = []
 	for part in xrange(1, N + 1):
 		x = random.random() * (L - 1)
 		y = random.random() * (L - 1)
-		particles.append({ "x": x, "y": y, "r": 0 })
+		r = max_r if fixed else (random.random() * (max_r) if max_r != 0 else 0)
+		particles.append({ "x": x, "y": y, "r": r })
 	return particles
 
 
@@ -165,6 +172,8 @@ def main():
 	arguments = parse_arguments()
 
 	border_control = arguments['border_control'] if 'border_control' in arguments else False
+	max_r = arguments['max_r'] if 'max_r' in arguments else 0
+	fixed = arguments['fixed'] if 'fixed' in arguments else True
 	
 	init()
 
@@ -178,7 +187,7 @@ def main():
 	L = data['world']["L"] if 'world' in data else data["L"]
 	rc = data['world']["rc"] if 'world' in data else data["rc"]
 	N = data['world']["N"] if 'world' in data else data["N"]
-	particles = data['particles'] if 'particles' in data else generate(N,L)
+	particles = data['particles'] if 'particles' in data else generate(N = N, L = L, max_r = max_r, fixed = fixed)
 	
 	start_time = time.time()
 
@@ -196,7 +205,6 @@ def main():
 				'M': M,
 				'L': L,
 				'rc': rc,
-				'r': 0,
 				'N': N
 			}
 		}, outfile)
