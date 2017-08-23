@@ -45,22 +45,22 @@ class App extends Component {
 	      </div>
 	      <div style={{margin:'10% auto 0', width: input.world.L * 32}}>
 	        <svg xmlns="http://www.w3.org/2000/svg" height={input.world.L * 32} width={input.world.L * 32}>
-	        	{_.times(input.world.L / input.world.M + 1, (i) =>
+	        	{_.times(input.world.M + 1, (i) =>
 	        		<line
 	        			key={i}
-	        			x1={input.world.M * i * 32}
-	        			x2={input.world.M * i * 32}
+	        			x1={input.world.L / input.world.M * i * 32}
+	        			x2={input.world.L / input.world.M * i * 32}
 	        			y1={0}
 	        			y2={input.world.L * 32}
 	        			style={{stroke:'red', strokeWidth: 2}}
 	        			/>
 	        		)
 	        	}
-	        	{_.times(input.world.L / input.world.M + 1, (i) =>
+	        	{_.times(input.world.M + 1, (i) =>
 	        		<line
 	        			key={i}
-	        			y1={input.world.M * i * 32}
-	        			y2={input.world.M * i * 32}
+	        			y1={(input.world.L / input.world.M) * i * 32}
+	        			y2={(input.world.L / input.world.M) * i * 32}
 	        			x1={0}
 	        			x2={input.world.L * 32}
 	        			style={{stroke:'red', strokeWidth: 2}}

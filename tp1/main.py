@@ -122,8 +122,10 @@ def analyse_system(M, L, rc, N, in_particles = [], border_control= False):
 	for index in xrange(0, len(in_particles)):
 		x = in_particles[index]["x"]
 		y = in_particles[index]["y"]
-		particles.append({"part": index, "x": x, "y": y, "x_c": int(floor(x / M)), "y_c": int(floor(y / M)), "r": in_particles[index]["r"]})
-		field[int(floor(x / M))][int(floor(y / M))].append({"part": index, "x": x, "y": y, "x_c": int(floor(x / M)), "y_c": int(floor(y / M)), "r": in_particles[index]["r"]})
+		particles.append({"part": index, "x": x, "y": y, "x_c": int(floor(x * M / L)), "y_c": int(floor(y * M / L)), "r": in_particles[index]["r"]})
+		#import ipdb
+		#ipdb.set_trace()
+		field[int(floor(x * M / L))][int(floor(y * M / L))].append({"part": index, "x": x, "y": y, "x_c": int(floor(x * M / L)), "y_c": int(floor(y * M / L)), "r": in_particles[index]["r"]})
 
 	neightbours = map(lambda particle: (particle["part"], get_neightbours(field, particle, rc = rc, M = M, L = L, border_control = border_control)), particles)
 	return neightbours
@@ -160,8 +162,8 @@ def brute_force(L, rc, N, in_particles = [], border_control= False):
 def generate(N, L, max_r, fixed):
 	particles = []
 	for part in xrange(1, N + 1):
-		x = random.random() * (L - 1)
-		y = random.random() * (L - 1)
+		x = random.random() * (L)
+		y = random.random() * (L)
 		r = max_r if fixed else (random.random() * (max_r) if max_r != 0 else 0)
 		particles.append({ "x": x, "y": y, "r": r })
 	return particles
@@ -216,6 +218,7 @@ def main():
 	a = brute_force(L = L, rc = rc, N = N, border_control = border_control, in_particles=particles)
 
 	print a
+	print 'Run Time: ', run_time
 
 	run_time = time.time() - start_time
 
