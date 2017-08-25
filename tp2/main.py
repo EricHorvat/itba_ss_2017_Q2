@@ -11,6 +11,7 @@ from math import sin
 from math import tan
 from math import atan2
 from math import pi
+from math import sqrt
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import getopt
@@ -65,47 +66,73 @@ def parse_arguments():
 
 	return arguments
 
-def noop():
-	pass
-
-def get_neighbours(field, particle, rc, M, L, border_control):
+def get_neighbours(field, particle, rc, M, L):
 	possible_neighbours = []
-	x_c = particle["x_c"]
-	y_c = particle["y_c"]
 	x = particle["x"]
 	y = particle["y"]
+	x_c = int(floor(x * M / L))
+	y_c = int(floor(y * M / L))
 	xm1 = (x_c - 1) % M
 	xp1 = (x_c + 1) % M
 	ym1 = (y_c - 1) % M
 	yp1 = (y_c + 1) % M
 	x2py2 = x ** 2 + y ** 2
-	possible_neighbours.extend(field[xm1][ym1]) if border_control or (xm1 >= 0 and ym1 >= 0)  else noop()
-	possible_neighbours.extend(field[xm1][y_c]) if border_control or xm1 >= 0  else noop()
-	possible_neighbours.extend(field[xm1][yp1]) if border_control or (xm1 >= 0 and yp1 < M)  else noop()
-	possible_neighbours.extend(field[x_c][ym1]) if border_control or ym1 >= 0  else noop()
-	possible_neighbours.extend(field[x_c][y_c]) 
-	possible_neighbours.extend(field[x_c][yp1]) if border_control or ym1 < M  else noop()
-	possible_neighbours.extend(field[xp1][ym1]) if border_control or (xp1 < M and ym1 >= 0) else noop()
-	possible_neighbours.extend(field[xp1][y_c]) if border_control or xp1 < M  else noop()
-	possible_neighbours.extend(field[xp1][yp1]) if border_control or (xp1 < M and yp1 < M) else noop()
-	
-	if border_control:
-		neighbours = filter(lambda part: ( 
-			(L - abs(part["x"]-x))**2+(L-abs(part["y"]-y))**2 < (rc)**2
-			or 
-			(part["x"]-x)**2+(L-abs(part["y"]-y))**2 < (rc)**2
-			or 
-			(L - abs(part["x"]-x))**2+(part["y"]-y)**2 < (rc)**2
-			or
-			(part["x"]-x)**2+(part["y"]-y)**2 < (rc)**2
-			)
-			and particle["part"] != part["part"], possible_neighbours)
-	else:
-		neighbours = filter(lambda part: (part["x"]-x)**2+(part["y"]-y)**2 < (rc)**2
-			and particle["part"] != part["part"], possible_neighbours)
-	
-	neighbours = map(lambda particle: particle["part"], neighbours)
+
+	x_a = [(x_c - i) % M for i in [-1,0,1]]
+	y_a = [(y_c - i) % M for i in [-1,0,1]]
+	for xx in x_a:
+		for yy in y_a:
+			possible_neighbours.extend(field[xx][yy])  
+	#possible_neighbours.extend(field[xm1][y_c]) 
+	#possible_neighbours.extend(field[xm1][yp1]) 
+	#possible_neighbours.extend(field[x_c][ym1]) if border_control or ym1 >= 0  else noop()
+	#possible_neighbours.extend(field[x_c][y_c]) 
+	#possible_neighbours.extend(field[x_c][yp1]) if border_control or ym1 < M  else noop()
+	#possible_neighbours.extend(field[xp1][ym1]) if border_control or (xp1 < M and ym1 >= 0) else noop()
+	#possible_neighbours.extend(field[xp1][y_c]) if border_control or xp1 < M  else noop()
+	#possible_neighbours.extend(field[xp1][yp1]) if border_control or (xp1 < M and yp1 < M) else noop()
+
+	neighbours = filter(lambda part: ( 
+		(L - abs(part["x"]-x))**2+(L-abs(part["y"]-y))**2 < (rc)**2
+		or 
+		(part["x"]-x)**2+(L-abs(part["y"]-y))**2 < (rc)**2
+		or 
+		(L - abs(part["x"]-x))**2+(part["y"]-y)**2 < (rc)**2
+		or
+		(part["x"]-x)**2+(part["y"]-y)**2 < (rc)**2
+		), possible_neighbours)
+
 	return neighbours
+
+def get_color(angle):
+	angle = (angle * 360 / (2 * pi))%360
+	X = 1 - abs(((angle/60)%2)-1)
+	if 0 <= angle < 60:
+		R = 255
+		G = X * 255
+		B = 0
+	if 60 <= angle < 120:
+		R = X * 255
+		G = 255
+		B = 0
+	if 120 <= angle < 180:
+		R = 0
+		G = 255
+		B = X * 255
+	if 180 <= angle < 240:
+		R = 0
+		G = X * 255
+		B = 255
+	if 240 <= angle < 300:
+		R = X * 255
+		G = 0
+		B = 255
+	if 300 <= angle <= 360:
+		R = 255
+		G = 0 
+		B = X * 255
+	return {"R":R, "G":G, "B":B}
+
 
 def get_field(M, L, in_particles = []):
 	
@@ -121,14 +148,12 @@ def get_field(M, L, in_particles = []):
 	for index in xrange(0, len(in_particles)):
 		x = in_particles[index]["x"]
 		y = in_particles[index]["y"]
-		particles.append({"part": index, "x": x, "y": y, "x_c": int(floor(x * M / L)), "y_c": int(floor(y * M / L))})
-		field[int(floor(x * M / L))][int(floor(y * M / L))].append({"part": index, "x": x, "y": y, "x_c": int(floor(x * M / L)), "y_c": int(floor(y * M / L))})
+		vx = in_particles[index]["vx"]
+		vy = in_particles[index]["vy"]
+		#TODO ADD TO FIELD
+		field[int(floor(x * M / L))][int(floor(y * M / L))].append({"part": index, "x": x, "y": y, "vx": vx, "vy": vy, "x_c": int(floor(x * M / L)), "y_c": int(floor(y * M / L))})
 
 	return field
-
-
-###############################################
-###############################################
 
 def generate(N, L):
 	particles = []
@@ -138,14 +163,14 @@ def generate(N, L):
 		angle = random.random() * 2 * pi
 		vx = cos(angle) * 0.03
 		vy = sin(angle) * 0.03
-		particles.append({ "x": x, "y": y, "vx": vx, "vy": vy})
-	ipdb.set_trace()
+		color = get_color(angle)
+		particles.append({ "x": x, "y": y, "vx": vx, "vy": vy, "color":color})
 	return particles
 
 #####REM
-def save(M,L,rc,N,neighbours,particles, i):
+def save(M,L,rc,N,neighbours,particles, i,eta):
 
-	with open('output/neighbours'+i+'.json', 'w') as outfile:
+	with open('output/neighbours'+str(i)+'.json', 'w') as outfile:
 		json.dump({
 			'neighbours': neighbours,
 			'particles': particles,
@@ -153,7 +178,8 @@ def save(M,L,rc,N,neighbours,particles, i):
 				'M': M,
 				'L': L,
 				'rc': rc,
-				'N': N
+				'N': N,
+				'eta': eta,
 			}
 		}, outfile)
 ##### REM
@@ -163,34 +189,37 @@ def start(M , L, particles, rc, eta):
 	while True:
 		field = get_field(M = M, L = L, in_particles = copy.deepcopy(particles))
 
-		neighbours = map(lambda particle: (particle["part"], get_neighbours(field, particle, rc = rc, M = M, L = L, border_control = border_control)), particles)
+		neighbours = map(lambda (index, particle): (index, get_neighbours(field = field, particle = particle, rc = rc, M = M, L = L)), enumerate(particles))
 		# HERE "part" no available, get enum ^
 
 
 		####REMOVE
-		save(M = M, L = L, rc = rc, particles = particles, neighbours = neighbours, eta = eta, i = i)
+		save(M = M, L = L, N = len(particles), rc = rc, particles = particles, neighbours = neighbours, eta = eta, i = i)
 		i+=1
 		#####
 
-		for particle in particles:
+		x_sum = 0
+		y_sum = 0
+
+		for (index,particle) in enumerate(particles):
 			particle["x"]= (particle["x"] + particle["vx"] ) % L # dt = 1
 			particle["y"]= (particle["y"] + particle["vy"] ) % L
-			particle_neighbours = neighbours[particle["part"]][1]
-			particle_neighbours.append(particle)
-			sum_vel = reduce(lambda neighbour, vel: (vel[0] + neighbour["vy"]/0.03, vel[1] + neighbour["vx"]/0.03), particle_neighbours, (0,0))
+			x_sum += particle["x"]
+			y_sum += particle["y"]
+			particle_neighbours = neighbours[index][1]
+			sum_speed = reduce(lambda speed, neighbour: (speed[0] + neighbour["vy"]/0.03, speed[1] + neighbour["vx"]/0.03), particle_neighbours, (0,0))
 			angle = (numpy.random.uniform(-eta/2,eta/2) +
-					atan2(sum_vel[0]/len(possible_neighbours),sum_vel[1]/len(possible_neighbours)) )
+					atan2(sum_speed[0]/len(particle_neighbours),sum_speed[1]/len(particle_neighbours)) )
 			particle["vx"]= cos(angle)
 			particle["vy"]= sin(angle)
+			particle["color"]= get_color(angle)
+
+		va = sqrt(x_sum**2 + y_sum**2) / (len(particles) *0.03)
+
 
 def main():
 
-	###TODO 
-	### Calclate density
-	### Calclate order
 	arguments = parse_arguments()
-
-	border_control = arguments['border_control'] if 'border_control' in arguments else False
 	
 	init()
 
@@ -206,6 +235,8 @@ def main():
 	N = data['world']["N"] if 'world' in data else data["N"]
 	eta = data['world']["eta"] if 'world' in data else data["eta"]
 	particles = data['particles'] if 'particles' in data else generate(N = N, L = L)
+
+	density = N/(L**2)
 
 	start(M = M, L = L, rc = rc, particles = particles, eta = eta)	
 
