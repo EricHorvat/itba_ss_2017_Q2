@@ -106,32 +106,16 @@ def get_neighbours(field, particle, rc, M, L):
 
 def get_color(angle):
 	angle = (angle * 360 / (2 * pi))%360
-	X = 1 - abs(((angle/60)%2)-1)
-	if 0 <= angle < 60:
+	R=0
+	G=0
+	B=0
+	if 0 <= angle < 180:
 		R = 255
-		G = X * 255
-		B = 0
-	if 60 <= angle < 120:
-		R = X * 255
+	if 120 <= angle < 300:
 		G = 255
-		B = 0
-	if 120 <= angle < 180:
-		R = 0
-		G = 255
-		B = X * 255
-	if 180 <= angle < 240:
-		R = 0
-		G = X * 255
+	if 240 <= angle < 360 or 0 <= angle < 60:
 		B = 255
-	if 240 <= angle < 300:
-		R = X * 255
-		G = 0
-		B = 255
-	if 300 <= angle <= 360:
-		R = 255
-		G = 0 
-		B = X * 255
-	return {"R":R, "G":G, "B":B}
+	return {"R":int(R), "G":int(G), "B":int(B)}
 
 
 def get_field(M, L, in_particles = []):
@@ -167,36 +151,31 @@ def generate(N, L):
 		particles.append({ "x": x, "y": y, "vx": vx, "vy": vy, "color":color})
 	return particles
 
-#####REM
-def save(M,L,rc,N,neighbours,particles, i,eta):
+def get_info(particles, i):
+	string = ""
+	string += '\t' + str(len(particles)) + '\n'
+	string += '\t' + str(i) + '\n'
+	for particle in particles:
+		string += '\t' + str(particle["x"]) + '\t' + str(particle["y"]) + '\t' + str(particle["vx"]) + '\t' + str(particle["vy"]) + '\t' + str(0.25) + '\t' + str(particle["color"]["R"]) + '\t' + str(particle["color"]["G"]) + '\t' + str(particle["color"]["B"]) + '\n'
+	return string
 
-	with open('output/neighbours'+str(i)+'.json', 'w') as outfile:
-		json.dump({
-			'neighbours': neighbours,
-			'particles': particles,
-			'world': {
-				'M': M,
-				'L': L,
-				'rc': rc,
-				'N': N,
-				'eta': eta,
-			}
-		}, outfile)
-##### REM
+def save_file(file_string):
+	with open('output/aneighbours.txt', 'w') as outfile:
+		outfile.write(file_string)
 
 def start(M , L, particles, rc, eta):
 	i = 0
-	while True:
+
+	file_string = ""
+	while i < 1000:
+		print i
 		field = get_field(M = M, L = L, in_particles = copy.deepcopy(particles))
 
 		neighbours = map(lambda (index, particle): (index, get_neighbours(field = field, particle = particle, rc = rc, M = M, L = L)), enumerate(particles))
 		# HERE "part" no available, get enum ^
 
 
-		####REMOVE
-		save(M = M, L = L, N = len(particles), rc = rc, particles = particles, neighbours = neighbours, eta = eta, i = i)
-		i+=1
-		#####
+		file_string += get_info(particles,i)
 
 		x_sum = 0
 		y_sum = 0
@@ -215,6 +194,11 @@ def start(M , L, particles, rc, eta):
 			particle["color"]= get_color(angle)
 
 		va = sqrt(x_sum**2 + y_sum**2) / (len(particles) *0.03)
+		i+=1
+
+
+	file_string += get_info(particles,i)
+	save_file(file_string)
 
 
 def main():
@@ -239,23 +223,6 @@ def main():
 	density = N/(L**2)
 
 	start(M = M, L = L, rc = rc, particles = particles, eta = eta)	
-
-	run_time = time.time() - start_time
-
-	with open('output/neighbours.json', 'w') as outfile:
-		json.dump({
-			'neighbours': neighbours,
-			'particles': particles,
-			'world': {
-				'M': M,
-				'L': L,
-				'rc': rc,
-				'r': r,
-				'N': N
-			}
-		}, outfile)
-
-	print 'Run Time: ', run_time
 
 
 if __name__ == '__main__':
