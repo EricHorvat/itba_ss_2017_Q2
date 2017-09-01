@@ -40,13 +40,15 @@ def usage():
 	print('-h --help:	print this screen')
 	print('-c --config=:	configuration file')
 	print('-p --partition=:	Va value file will be generated for each iterations')
+	print('-e --eta_step=:	Va value file will be generated for each iterations')
+	print('-d --density_step=:	Va value file will be generated for each iterations')
 
 def parse_arguments():
 	arguments = {
 		'config': './config/config.json',
 	}
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'hc:tn', ['help', 'config=', 'partition='])
+		opts, args = getopt.getopt(sys.argv[1:], 'hc:tn', ['help', 'config=', 'partition=', 'eta_step=', 'density_step='])
 	
 	except getopt.GetoptError as err:
 		print str(err)  # will print something like "option -a not recognized"
@@ -61,6 +63,10 @@ def parse_arguments():
 			arguments['config'] = a
 		elif o in ('-p','--partition'):
 			arguments['partition'] = int(a)
+		elif o in ('--eta_step'):
+			arguments['eta_step'] = int(a)
+		elif o in ('--density_step'):
+			arguments['density_step'] = int(a)
 		else:
 			assert False, 'unknown option `' + o + '`' 
 
@@ -162,22 +168,22 @@ def get_info(particles, i):
 VA = "va"
 FILE = "file"
 
-def save_file(typee,file_string):
+def save_file(typee,parameter,parameter_value,file_string):
 	if typee == VA:
-		with open('output/va.txt', 'w') as outfile:
+		with open('output/va_'+ str(parameter) +'=' +str(parameter_value) +'.txt', 'w') as outfile:
 			outfile.write(file_string)
 	elif typee == FILE:
-		with open('output/neighbours.txt', 'w') as outfile:
+		with open('output/neighbours_'+ str(parameter) +'=' +str(parameter_value)  +'.txt', 'w') as outfile:
 			outfile.write(file_string)
 
-def start(M , L, particles, rc, eta, partition, v, iterations):
+def start(M , L, particles, rc, eta, partition, v, iterations, parameter):
 	i = 0
 
 	file_string = ""
 	va_string = ""
 	while i < iterations:
 		print i
-		field = get_field(M = M, L = L, in_particles = copy.deepcopy(particles))
+		field = get_field(M = M, L = L, in_particles = particles)
 
 		neighbours = map(lambda (index, particle): (index, get_neighbours(field = field, particle = particle, rc = rc, M = M, L = L)), enumerate(particles))
 		# HERE "part" no available, get enum ^
@@ -212,8 +218,8 @@ def start(M , L, particles, rc, eta, partition, v, iterations):
 
 
 	file_string += get_info(particles,i)
-	save_file(FILE,file_string)
-	save_file(VA,va_string) if va_string != "" else (lambda x: x ,[])
+	save_file(typee = FILE, parameter = parameter, parameter_value = len(particles),file_string = file_string)
+	save_file(typee = VA, parameter = parameter, parameter_value = len(particles),file_string = va_string) if va_string != "" else (lambda x: x ,[])
 
 
 def main():
@@ -221,6 +227,8 @@ def main():
 	arguments = parse_arguments()
 
 	partition = arguments['partition'] if 'partition' in arguments else 0
+	eta_step = arguments['eta_step'] if 'eta_step' in arguments else 0
+	density_step = arguments['density_step'] if 'density_step' in arguments else 0
 	
 	init()
 
@@ -240,9 +248,20 @@ def main():
 	eta = data['world']["eta"] if 'world' in data else data["eta"]
 	particles = data['particles'] if 'particles' in data else generate(N = N, L = L, r = r, v = v)
 
+
 	density = N/(L**2)
 
-	start(M = M, L = L, rc = rc, particles = particles, eta = eta, partition = partition, v = v, iterations = iterations)	
+	if eta_step > 0:
+		for eta_summ in numpy.arange(0, eta+eta*eta_step/100, eta*eta_step/100.0):
+			start(M = M, L = L, rc = rc, particles = copy.deepcopy(particles), eta = eta_summ, partition = partition, v = v, iterations = iterations, parameter="particle_number")
+	elif density_step > 0:
+		for density_summ in xrange(density_step,100+density_step, density_step):
+			N_step = int(floor(N * density_summ/100.0))
+			particles = generate(N = N_step, L = L, r = r, v = v)
+			start(M = M, L = L, rc = rc, particles = particles, eta = eta, partition = partition, v = v, iterations = iterations, parameter="particle_number")
+	else:
+			start(M = M, L = L, rc = rc, particles = particles, eta = eta, partition = partition, v = v, iterations = iterations, parameter="particle_number")
+
 
 
 if __name__ == '__main__':
