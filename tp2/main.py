@@ -110,20 +110,6 @@ def get_neighbours(field, particle, rc, M, L):
 
 	return neighbours
 
-def get_color(angle):
-	angle = (angle * 360 / (2 * pi))%360
-	R=0
-	G=0
-	B=0
-	if 0 <= angle < 180:
-		R = 255
-	if 120 <= angle < 300:
-		G = 255
-	if 240 <= angle < 360 or 0 <= angle < 60:
-		B = 255
-	return {"R":int(R), "G":int(G), "B":int(B)}
-
-
 def get_field(M, L, in_particles = []):
 	
 	field = {} 
@@ -153,8 +139,9 @@ def generate(N, L, r, v):
 		angle = random.random() * 2 * pi
 		vx = cos(angle) * v
 		vy = sin(angle) * v
-		color = get_color(angle)
-		particles.append({ "part": part, "x": x, "y": y, "vx": vx, "vy": vy, "r": r, "color":color})
+		angle = angle * 360 / 2 / pi
+		#color = get_color(angle)
+		particles.append({ "part": part, "x": x, "y": y, "vx": vx, "vy": vy, "r": r, "angle":angle})
 	return particles
 
 def get_info(particles, i):
@@ -162,7 +149,7 @@ def get_info(particles, i):
 	string += '\t' + str(len(particles)) + '\n'
 	string += '\t' + str(i) + '\n'
 	for particle in particles:
-		string += '\t' + str(particle["x"]) + '\t' + str(particle["y"]) + '\t' + str(particle["vx"]) + '\t' + str(particle["vy"]) + '\t' + str(particle["r"]) + '\t' + str(particle["color"]["R"]) + '\t' + str(particle["color"]["G"]) + '\t' + str(particle["color"]["B"]) + '\n'
+		string += '\t' + str(particle["x"]) + '\t' + str(particle["y"]) + '\t' + str(particle["vx"]) + '\t' + str(particle["vy"]) + '\t' + str(particle["r"]) + '\t' + str(particle["angle"]%360) + '\n'
 	return string
 
 VA = "va"
@@ -202,19 +189,31 @@ def start(M , L, particles, rc, eta, partition, v, iterations, parameter):
 			x_sum += particle["x"]
 			y_sum += particle["y"]
 			particle_neighbours = neighbours[index][1]
-			sum_speed = reduce(lambda speed, neighbour: (speed[0] + neighbour["vy"]/v, speed[1] + neighbour["vx"]/v), particle_neighbours, (0,0))
-			angle = (numpy.random.uniform(-eta/2,eta/2) +
-					atan2(sum_speed[0]/len(particle_neighbours),sum_speed[1]/len(particle_neighbours)) )
-			particle["vx"]= cos(angle)
-			particle["vy"]= sin(angle)
+			sum_speed = reduce(lambda speed, neighbour: (speed[0] + neighbour["vy"], speed[1] + neighbour["vx"]), particle_neighbours, (0,0))
+			rand = numpy.random.uniform()*eta-eta/2.0
+			angle = (rand +
+					atan2(sum_speed[0]/(v*len(particle_neighbours)),sum_speed[1]/(v*len(particle_neighbours))) )
+			particle["angle"] = angle * 360 / (2 * pi)
+			particle["vx"]= cos(angle) * v
+			particle["vy"]= sin(angle) * v
 			vx_sum += cos(angle) 
 			vy_sum += sin(angle)
-			particle["color"]= get_color(angle)
+			# if index == 1:
+			# 	print sum_speed
+			# 	print rand
+			# 	print atan2(sum_speed[0]/(v*len(particle_neighbours)),sum_speed[1]/(v*len(particle_neighbours))) %(2 * pi)
+			# 	print particle["angle"] %360
+			# 	import ipdb
+			# 	ipdb.set_trace()
+			# #particle["color"]= get_color(angle)
 
 		if partition > 0 and i%partition == 0:
-			va = sqrt(vx_sum**2 + vy_sum**2) / (len(particles))
+			va = sqrt(vx_sum**2 + vy_sum**2) / (v*len(particles))
 			va_string += str(va).replace(".",",") + '\n'
 		i+=1
+
+		#import ipdb
+		#ipdb.set_trace()
 
 
 	file_string += get_info(particles,i)
