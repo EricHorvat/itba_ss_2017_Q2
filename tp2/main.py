@@ -144,12 +144,16 @@ def generate(N, L, r, v):
 		particles.append({ "part": part, "x": x, "y": y, "vx": vx, "vy": vy, "r": r, "angle":angle})
 	return particles
 
-def get_info(particles, i):
+def get_info(particles, i, L):
 	string = ""
-	string += '\t' + str(len(particles)) + '\n'
+	string += '\t' + str(len(particles)+4) + '\n'
 	string += '\t' + str(i) + '\n'
 	for particle in particles:
-		string += '\t' + str(particle["x"]) + '\t' + str(particle["y"]) + '\t' + str(particle["vx"]) + '\t' + str(particle["vy"]) + '\t' + str(particle["r"]) + '\t' + str(particle["angle"]%360) + '\n'
+		string += '\t' + str(particle["x"]) + '\t' + str(particle["y"]) + '\t' + str(particle["r"]) + '\t' + str(particle["angle"]%360) + '\n'
+	string += '\t' + str(0) + '\t' + str(0) + '\t' + str(0.00000001) + '\t' + str(0) + '\n'
+	string += '\t' + str(L) + '\t' + str(0) + '\t' + str(0.00000001) + '\t' + str(0) + '\n'
+	string += '\t' + str(0) + '\t' + str(L) + '\t' + str(0.00000001) + '\t' + str(0) + '\n'
+	string += '\t' + str(L) + '\t' + str(L) + '\t' + str(0.00000001) + '\t' + str(0) + '\n'
 	return string
 
 VA = "va"
@@ -176,7 +180,7 @@ def start(M , L, particles, rc, eta, partition, v, iterations, parameter):
 		# HERE "part" no available, get enum ^
 
 
-		file_string += get_info(particles,i)
+		file_string += get_info(particles,i,L)
 
 		x_sum = 0
 		y_sum = 0
@@ -216,7 +220,7 @@ def start(M , L, particles, rc, eta, partition, v, iterations, parameter):
 		#ipdb.set_trace()
 
 
-	file_string += get_info(particles,i)
+	file_string += get_info(particles,i,L)
 	save_file(typee = FILE, parameter = parameter, parameter_value = len(particles),file_string = file_string)
 	save_file(typee = VA, parameter = parameter, parameter_value = len(particles),file_string = va_string) if va_string != "" else (lambda x: x ,[])
 
