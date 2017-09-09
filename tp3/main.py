@@ -127,8 +127,8 @@ def get_info(particles, L, i):
 VA = "va"
 FILE = "file"
 
-def save_file(file_string, i = False, N = 0):
-	with open('output/brownian' + (str(N) if N > 0 else 'e') + ' '  + (str(i) if i else '')+ '.txt', 'w') as outfile:
+def save_file(file_string, t = 0, N = 0):
+	with open('output/brownian' + (str(N) if N > 0 else 'e') + ' '  + str(t)+ '.txt', 'w') as outfile:
 		outfile.write(file_string)
 
 def save_data(file_string, N = 0):
@@ -168,11 +168,8 @@ def start(L, particles, dt):
 		if i % 100 == 0:
 			print i
 			print big_particle
-			if i % 1000 == 0 and i != 0:
-				save_file(file_string = file_string, i=i, N = len(particles) -1 )
-				#save_data("v_data = "+str(v_sum/i)+", t_data ="+ str(t_sum/i), N = len(particles) -1 )
-			elif i == 0:
-				save_file(file_string = file_string, i=i, N = len(particles) -1 )
+			if i % 1000 == 0:
+				save_file(file_string = file_string, t=t_sum, N = len(particles) -1 )
 
 		min_tc = False
 		# 2
@@ -268,12 +265,11 @@ def start(L, particles, dt):
 	selected_particles_final_positions = [(particles[i].x,particles[i].y) for i in selected_particles_index]
 
 	v_dict_keys = filter(lambda value: value >= t_sum *2/3.0, v_dict.keys())
-	## TODO PDF v_dict
 	
 	tc_step = max(tc_arr) / 20.0
 	tc_pdf = {}
 	for x in xrange(1,20):
-		tc_pdf[x*tc_step] = len(filter(lambda elem: (x-1)*tc_step < elem <= x*tc_step, tc_arr)) / len (tc_arr)
+		tc_pdf[x*tc_step] = len(filter(lambda elem: (x-1)*tc_step < elem <= x*tc_step, tc_arr)) * 1.0 / len(tc_arr)
 
 	tc_avg = sum(tc_arr)/len(tc_arr) #TC AVG
 
@@ -285,16 +281,17 @@ def start(L, particles, dt):
 	v_avg = sum(v_arr)/len(v_arr) #V AVG
 	v_pdf = {}
 	for x in xrange(1,20):
-		v_pdf[x*v_step] = len(filter(lambda elem: (x-1)*v_step < elem <= x*v_step, v_arr)) / len (v_arr)
+		v_pdf[x*v_step] = len(filter(lambda elem: (x-1)*v_step < elem <= x*v_step, v_arr)) *1.0/ len (v_arr)
 
-	save_file(file_string = file_string, N = len(particles) -1 )
-	data_str = "1 Colision frecuency =" + str(t_sum/i) + '\n'
-	data_str += "Colision time average =" + str(tc_avg) + '\n'
+	save_file(file_string = file_string, N = len(particles) -1 , t = t_sum)
+	data_str = "1 Colision frecuency =" + str(t_sum/i) + 'col/s\n'
+	data_str += "Colision time average =" + str(tc_avg) + ' s\n'
 	data_str += "Colision time pdf =" + str(tc_pdf) + '\n'
-	data_str += "2. Vel time avg =" + str(v_avg) + '\n'
+	data_str += "2. Vel time avg =" + str(v_avg) + ' m/s\n'
 	data_str += "Vel time pdf =" + str(v_pdf) + '\n'
 	data_str += "4. Dif coef BIG = " + str((hypot(big_particle.trajectory[-1][0] - big_particle.trajectory[0][0],big_particle.trajectory[-1][1] - big_particle.trajectory[0][1]))**2 /t_sum) + '\n'
 	data_str += "Dif coef =" + str(get_difusion_coef(selected_particles_initial_positions,selected_particles_final_positions, t_sum)) + '\n'
+	data_str += "tf =" + str(t_sum) + '\n'
 	save_data(data_str, N = len(particles) -1 )
 	
 	path = Path(big_particle.trajectory, big_particle.codes)
@@ -305,7 +302,6 @@ def start(L, particles, dt):
 	ax.add_patch(patch)
 	ax.set_xlim(-0.0,0.5)
 	ax.set_ylim(-0.0,0.5)
-	#TODO plt.save()
 	plt.savefig('output/distance-' + str(len(particles)) + '.png')
 
 	print t_sum	
@@ -315,10 +311,6 @@ def main():
 
 	arguments = parse_arguments()
 
-	partition = arguments['partition'] if 'partition' in arguments else 0
-	eta_step = arguments['eta_step'] if 'eta_step' in arguments else 0
-	density_step = arguments['density_step'] if 'density_step' in arguments else 0
-	
 	init()
 
 	with open(arguments['config']) as data_file:
