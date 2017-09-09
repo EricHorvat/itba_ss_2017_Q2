@@ -13,12 +13,14 @@ from math import atan2
 from math import hypot
 from math import pi
 from math import sqrt
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from math import ceil
 import getopt
 import random
 import time
 import copy
+import matplotlib.pyplot as plt
+from matplotlib.path import Path
+import matplotlib.patches as patches
 
 colored_traceback.add_hook()
 
@@ -125,15 +127,21 @@ def get_info(particles, L, i):
 VA = "va"
 FILE = "file"
 
-def save_file(file_string, i = False):
-	with open('output/brownian' + (str(i) if i else '') + '.txt', 'w') as outfile:
+def save_file(file_string, i = False, N = 0):
+	with open('output/brownian' + (str(N) if N > 0 else 'e') + ' '  + (str(i) if i else '')+ '.txt', 'w') as outfile:
 		outfile.write(file_string)
 
-def save_data(file_string):
-	with open('output/data.txt', 'w') as outfile:
+def save_data(file_string, N = 0):
+	with open('output/data' + (str(N) if N > 0 else 'e') + '.txt', 'w') as outfile:
 		outfile.write(file_string)
 
-def start(L, particles, iterations, dt):
+def get_difusion_coef(arr_ini, arr_end,t_sum):
+	summ = 0
+	for i in xrange(0, len (arr_ini)):
+		summ += (hypot(arr_end[i][0] - arr_ini[i][0],arr_end[i][1] - arr_ini[i][1]))**2 /t_sum
+	return summ / len(arr_ini)	
+
+def start(L, particles, dt):
 	i = 0
 
 	x1 = 0
@@ -143,10 +151,15 @@ def start(L, particles, iterations, dt):
 
 	file_string = get_info(particles = particles,L = L, i = i)
 	big_particle = particles[0]
+	selected_particles_index = random.sample(xrange(1,len(particles) + 1), int(ceil(len(particles)*0.05)))
+	selected_particles_initial_positions = [(particles[i].x,particles[i].y) for i in selected_particles_index]
+	big_particle.trajectory = [(big_particle.x,big_particle.y)]
+	big_particle.codes = [Path.MOVETO]
 	t_count = 0
 	t_sum = 0
-	v_sum = 0
-	import ipdb
+	tc_arr = []
+	v_data = map(lambda elem: hypot(elem.vx,elem.vy),particles)
+	v_dict = {0:v_data}
 	while not ( (big_particle.r - big_particle.x) == x1 or \
 		(big_particle.r + big_particle.x) == x2 or \
 		(big_particle.r - big_particle.y) == y1 or \
@@ -156,11 +169,10 @@ def start(L, particles, iterations, dt):
 			print i
 			print big_particle
 			if i % 1000 == 0 and i != 0:
-				save_file(file_string = file_string, i=i)
-				save_data("v_data = "+str(v_sum/i)+", t_data ="+ str(t_sum/i))
+				save_file(file_string = file_string, i=i, N = len(particles) -1 )
+				#save_data("v_data = "+str(v_sum/i)+", t_data ="+ str(t_sum/i), N = len(particles) -1 )
 			elif i == 0:
-				save_file(file_string = file_string, i=i)
-			#ipdb.set_trace()
+				save_file(file_string = file_string, i=i, N = len(particles) -1 )
 
 		min_tc = False
 		# 2
@@ -185,7 +197,7 @@ def start(L, particles, iterations, dt):
 				ipdb.set_trace()
 
 
-			for (other_index, other_particle) in enumerate(particles):
+			for (other_index,other_particle) in enumerate(particles):
 				if index < other_index:
 					sigma = particle.r + other_particle.r
 					dx = other_particle.x - particle.x
@@ -202,10 +214,12 @@ def start(L, particles, iterations, dt):
 							ipdb.set_trace()
 
 						min_tc = (tc,index,other_index) if tc <= min_tc[0] else min_tc
+
 			
 		#ipdb.set_trace()
 
 		tc = min_tc[0]
+		tc_arr.append(tc)
 		if tc < 0:
 			ipdb.set_trace()
 		collide_particle = particles[min_tc[1]]
@@ -215,6 +229,9 @@ def start(L, particles, iterations, dt):
 		for particle in particles:
 			particle.x = particle.x + particle.vx * tc
 			particle.y = particle.y + particle.vy * tc 
+
+		big_particle.trajectory.append((big_particle.x, big_particle.y))
+		big_particle.codes.append(Path.LINETO)
 
 		#4
 		if collide_element_index == -2:
@@ -238,20 +255,61 @@ def start(L, particles, iterations, dt):
 			collide_other_particle.vx = collide_other_particle.vx - Jx /collide_other_particle.m
 			collide_other_particle.vy = collide_other_particle.vy - Jy /collide_other_particle.m
 		
-		t_count += min_tc[0]
-		t_sum += min_tc[0]
-		v_data = reduce(lambda acumm, elem: acumm + hypot(elem.vx,elem.vy),particles,0) / len(particles)
-		v_sum += v_data 
+		t_count += tc
+		t_sum += tc
+		v_data = map(lambda elem: hypot(elem.vx,elem.vy),particles)
+		v_dict[t_sum+tc] = v_data
 		if t_count > dt:
 			file_string += get_info(particles = particles,L = L, i = i)
 			t_count = 0
 
 		i+=1
 
-	save_file(file_string = file_string)
-	save_data("v_data = "+str(v_sum/i)+", t_data ="+ str(t_sum/i))
+	selected_particles_final_positions = [(particles[i].x,particles[i].y) for i in selected_particles_index]
+
+	v_dict_keys = filter(lambda value: value >= t_sum *2/3.0, v_dict.keys())
+	## TODO PDF v_dict
+	
+	tc_step = max(tc_arr) / 20.0
+	tc_pdf = {}
+	for x in xrange(1,20):
+		tc_pdf[x*tc_step] = len(filter(lambda elem: (x-1)*tc_step < elem <= x*tc_step, tc_arr)) / len (tc_arr)
+
+	tc_avg = sum(tc_arr)/len(tc_arr) #TC AVG
+
+	v_arr = []
+	for key in v_dict_keys:
+		v_arr.extend(v_dict[key])
+
+	v_step = max(v_arr) / 20.0
+	v_avg = sum(v_arr)/len(v_arr) #V AVG
+	v_pdf = {}
+	for x in xrange(1,20):
+		v_pdf[x*v_step] = len(filter(lambda elem: (x-1)*v_step < elem <= x*v_step, v_arr)) / len (v_arr)
+
+	save_file(file_string = file_string, N = len(particles) -1 )
+	data_str = "1 Colision frecuency =" + str(t_sum/i) + '\n'
+	data_str += "Colision time average =" + str(tc_avg) + '\n'
+	data_str += "Colision time pdf =" + str(tc_pdf) + '\n'
+	data_str += "2. Vel time avg =" + str(v_avg) + '\n'
+	data_str += "Vel time pdf =" + str(v_pdf) + '\n'
+	data_str += "4. Dif coef BIG = " + str((hypot(big_particle.trajectory[-1][0] - big_particle.trajectory[0][0],big_particle.trajectory[-1][1] - big_particle.trajectory[0][1]))**2 /t_sum) + '\n'
+	data_str += "Dif coef =" + str(get_difusion_coef(selected_particles_initial_positions,selected_particles_final_positions, t_sum)) + '\n'
+	save_data(data_str, N = len(particles) -1 )
+	
+	path = Path(big_particle.trajectory, big_particle.codes)
+
+	fig = plt.figure()
+	ax = fig.add_subplot(111)
+	patch = patches.PathPatch(path, facecolor='white', lw=2)
+	ax.add_patch(patch)
+	ax.set_xlim(-0.0,0.5)
+	ax.set_ylim(-0.0,0.5)
+	#TODO plt.save()
+	plt.savefig('output/distance-' + str(len(particles)) + '.png')
+
 	print t_sum	
-	#TOD GET RC FROM 2 * TC PROM * VC
+	#FINAL LINE
 
 def main():
 
@@ -269,7 +327,6 @@ def main():
 
 	pprint.pprint(data)
 
-	iterations = data['world']["interations"] if 'world' in data else data["iterations"]
 	N = data['world']["N"] if 'world' in data else data["N"]
 	dt = data['world']["dt"] if 'world' in data else data["dt"]
 
@@ -279,22 +336,14 @@ def main():
 	m=0.1
 	m2=100
 	v = 0.1
-	particles = data['particles'] if 'particles' in data else generate(N = N, L = L, r = r, v = v, m = m, r2 = r2, m2 = m2)
 
-
-
-	density = N/(L**2)
-
-	if eta_step > 0:
-		for eta_summ in numpy.arange(0, eta+eta*eta_step/100, eta*eta_step/100.0):
-			start(M = M, L = L, rc = rc, particles = copy.deepcopy(particles), eta = eta_summ, partition = partition, v = v, iterations = iterations, parameter="particle_number")
-	elif density_step > 0:
-		for density_summ in xrange(density_step,100+density_step, density_step):
-			N_step = int(floor(N * density_summ/100.0))
-			particles = generate(N = N_step, L = L, r = r, v = v)
-			start(M = M, L = L, rc = rc, particles = particles, eta = eta, partition = partition, v = v, iterations = iterations, parameter="particle_number")
+	if N is int:
+		particles = data['particles'] if 'particles' in data else generate(N = N, L = L, r = r, v = v, m = m, r2 = r2, m2 = m2)
+		start(L = L, particles = particles, dt = dt)
 	else:
-			start(L = L, particles = particles, iterations = iterations, dt = dt)
+		for n in N:
+			particles = data['particles'] if 'particles' in data else generate(N = n, L = L, r = r, v = v, m = m, r2 = r2, m2 = m2)
+			start(L = L, particles = particles, dt = dt)
 
 
 
