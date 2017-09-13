@@ -262,7 +262,7 @@ def start(L, particles, dt):
 
 		i+=1
 
-	selected_particles_final_positions = [(particles[i].x,particles[i].y) for i in selected_particles_index]
+	selected_particles_final_positions = [(particles[it].x,particles[it].y) for it in selected_particles_index]
 
 	v_dict_keys = filter(lambda value: value >= t_sum *2/3.0, v_dict.keys())
 	
@@ -284,7 +284,7 @@ def start(L, particles, dt):
 		v_pdf[x*v_step] = len(filter(lambda elem: (x-1)*v_step < elem <= x*v_step, v_arr)) *1.0/ len (v_arr)
 
 	save_file(file_string = file_string, N = len(particles) -1 , t = t_sum)
-	data_str = "1 Colision frecuency =" + str(t_sum/i) + 'col/s\n'
+	data_str = "1 Colision frecuency =" + str(i/t_sum) + 'col/s\n'
 	data_str += "Colision time average =" + str(tc_avg) + ' s\n'
 	data_str += "Colision time pdf =" + str(tc_pdf) + '\n'
 	data_str += "2. Vel time avg =" + str(v_avg) + ' m/s\n'
@@ -292,6 +292,7 @@ def start(L, particles, dt):
 	data_str += "4. Dif coef BIG = " + str((hypot(big_particle.trajectory[-1][0] - big_particle.trajectory[0][0],big_particle.trajectory[-1][1] - big_particle.trajectory[0][1]))**2 /t_sum) + '\n'
 	data_str += "Dif coef =" + str(get_difusion_coef(selected_particles_initial_positions,selected_particles_final_positions, t_sum)) + '\n'
 	data_str += "tf =" + str(t_sum) + '\n'
+	data_str += "i =" + str(i) + '\n'
 	save_data(data_str, N = len(particles) -1 )
 	
 	path = Path(big_particle.trajectory, big_particle.codes)
