@@ -19,6 +19,11 @@ class Algorithm(object):
 	def basic_loop(self):
 		raise "Not implemented method"
 
+	def get_error(self,correct_history):
+		if len(correct_history) != len (self.r_history):
+			raise "Different length"
+
+		return sum(map(lambda (index,elem): (elem - correct_history[index])**2,enumerate(self.r_history))) / len(correct_history)
 
 
 		

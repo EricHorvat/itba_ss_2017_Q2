@@ -85,11 +85,12 @@ def start(dt = dt):
 		gear.loop()
 		#strr+= (str(verlet[R])) + '\t' + str(analitic[R]) + '\t' + (str(verlet[V])) + '\t' + str(analitic[V]) + '\t' + (str(verlet[A])) + '\t' + str(analitic[A]) + '\n'
 
-	print gear.r_history
+	 
 	plot(analitic.r_history,verlet.r_history,beeman.r_history, gear.r_history)
 
 	with open('output_particle/data.txt', 'w') as outfile:
-		outfile.write(strr.replace(".",","))
+		methods = [verlet,beeman,gear]
+		outfile.write(reduce(lambda accum,elem: accum + str(elem.__class__) + str(elem.get_error(analitic.r_history)) + " ,",methods,""))
 
 def plot(analitic_array, verlet_array, beeman_array, gear_array):
 	legends = ['Analitic','Velvet','Beeman','Gear']
@@ -106,21 +107,6 @@ def plot(analitic_array, verlet_array, beeman_array, gear_array):
 	_delta = 0.01 if _delta == 0 else _delta
 	plt.yticks(np.arange(_min - _delta, _max + _delta, _delta))
 	plt.savefig(os.path.join(os.getcwd(),"output_particle/i.png"))
-	plt.close()
-	#Correct last 1000 iteration
-	plt.plot(xrange(len(analitic_array))[-1000], analitic_array[-1000])
-	plt.plot(xrange(len(analitic_array))[-1000], verlet_array[-1000])
-	plt.plot(xrange(len(analitic_array))[-1000], beeman_array[-1000])
-	plt.plot(xrange(len(analitic_array))[-1000], gear_array[-1000])
-	plt.legend(legends)
-	plt.xlabel('t')
-	plt.ylabel('Y')
-	_max = 1.0
-	_min = -1.0
-	_delta = (_max - _min) / 15
-	_delta = 0.01 if _delta == 0 else _delta
-	plt.yticks(np.arange(_min - _delta, _max + _delta, _delta))
-	plt.savefig(os.path.join(os.getcwd(),"output_particle/i2.png"))
 	plt.close()
 
 def main():
