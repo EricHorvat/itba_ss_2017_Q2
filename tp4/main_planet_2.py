@@ -67,12 +67,17 @@ def parse_arguments():
 
 def start(planets, ship):
 	distance = []
+	min_distance_dic = {}
+	min_t_dic = {}
 	#for angle in xrange(90,270):
 	for angle in frange(225.0,236.0,1.0):
 		print angle
-		min_distance = False
+
+		min_distance_ang_dic = {}
+		min_t_ang_dic = {}
 		for v in frange(1e4,5.0e4,5e3):
 			print v
+			min_distance = False
 			#TODO TODOOOOOO AND V 
 			planet_system = PlanetSystem(planets = planets, dt = dt)
 			info = planet_system.get_info(0)
@@ -88,11 +93,11 @@ def start(planets, ship):
 				new_distance = (planet_system.get_ship_distance_to_mars(),t,v)
 				if min_distance[0] > new_distance[0]:
 					min_distance = new_distance
-					min_info = True
-			if min_info:
-				min_info = info
-		
-		distance.append(min_distance)
+					min_distance_ang_dic[v] = min_distance
+					min_t_ang_dic[v] = t
+
+		min_distance_dic[angle] = min_distance_ang_dic
+		min_t_dic[angle] = min_t_ang_dic
 
 		with open('output_planet/planet_system' + str(angle) + '.txt', 'w') as outfile:
 			outfile.write(info)
@@ -100,7 +105,13 @@ def start(planets, ship):
 	with open('output_planet/data.txt', 'w') as outfile:
 		outfile.write(str(distance))
 
-def plot(analitic_array, verlet_array, beeman_array, gear_array):
+	plot(min_t_dic, min_distance_dic)
+
+
+def plot(t_dic, distance_dic):
+	
+
+	#old from particle
 	legends = ['Analitic','Velvet','Beeman','Gear']
 	plt.plot(xrange(len(analitic_array)), analitic_array)
 	plt.plot(xrange(len(analitic_array)), verlet_array)
@@ -298,8 +309,8 @@ class PlanetSystem(object):
 		r = ship_dic["rad"]
 		x = earth.x + ex * (ship_dic["r"] + earth.r)
 		y = earth.y + ey * (ship_dic["r"] + earth.r)
-		vx = v * cos(v_angle)
-		vy = v * sin(v_angle)
+		vx = earth.vx + ( ship_dic["v_orb"] + v) * cos(v_angle)
+		vy = earth.vy + ( ship_dic["v_orb"] + v) * sin(v_angle)
 		m = ship_dic["m"]
 		R = ship_dic["R"]
 		GG = ship_dic["G"]

@@ -13,7 +13,7 @@ class Gear5(Algorithm):
 		self.alpha = [3/16.0,251/360.0,1.0,11/18.0,1/6.0,1/60.0]
 
 	def get_initial_r_corr(self,r,v,k,m):
-		next_r = r+v*self.dt
+		next_r = r+v*self.dt+ self.a_function(r=r,v=v)/2.0*self.dt**2
 		next_v = v+self.a_function(r=r,v=v)*self.dt
 		dr = next_r - r
 		k_div_m = k/m
