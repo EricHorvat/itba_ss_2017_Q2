@@ -39,7 +39,7 @@ def parse_arguments():
 		'config': './config_planet/config.json',
 	}
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'hc:tn', ['help'])
+		opts, args = getopt.getopt(sys.argv[1:], 'hc:tn', ['help','config='])
 	
 	except getopt.GetoptError as err:
 		print str(err)  # will print something like "option -a not recognized"
@@ -50,6 +50,8 @@ def parse_arguments():
 		if o in ('-h', '--help'):
 			usage()
 			sys.exit()
+		elif o in ('-c', '--config'):
+			arguments['config'] = a
 		else:
 			assert False, 'unknown option `' + o + '`' 
 
@@ -57,22 +59,20 @@ def parse_arguments():
 
 def start(planets, ship):
 	distance = []
-	for day in xrange(0,8):
-		planet_system = PlanetSystem(planets = planets, ship = ship, dt = dt)
+	for day in xrange(511,512):
+		planet_system = PlanetSystem(planets = planets, dt = dt)
 		info = planet_system.get_info(0)
 		for index in xrange(1,int(tf/dt)+1):
 			t = index * dt
 			#import ipdb; ipdb.set_trace()
-			if t > day * 3600 * 24 and not planet_system.ship_launched() :
+			if t > day * 3600.0 * 24.0 and not planet_system.ship_launched() :
 				planet_system.launch_ship(ship)
 				min_distance = planet_system.get_ship_distance_to_mars()
 				
 			planet_system.loop()
-			if index % (dt *5.0) == 0:
+			if t % (dt2) == 0:
 				info += planet_system.get_info(index)
 			if planet_system.ship_launched():
-				#print planet_system.planets[3]
-				#ipdb.set_trace()
 				new_distance = planet_system.get_ship_distance_to_mars()
 				min_distance = min_distance if  new_distance > min_distance else new_distance
 		distance.append(min_distance)
@@ -127,18 +127,19 @@ def main():
 
 	pprint.pprint(data)
 
-	global tf,dt
+	global tf,dt,dt2
 
 	planets = data["planets"] 
 	ship = data["ship"] 
-	tf = data["tf"]
+	tf = data["tf"] * 2.5
 	dt = data["dt"]
+	dt2 = data["dt2"]
 	
 	start(planets = planets, ship = ship)
 
 class PlanetSystem(object):
 	
-	def __init__(self, planets, ship, dt):
+	def __init__(self, planets, dt):
 		super(PlanetSystem, self).__init__()
 		self.planets = map(lambda elem: self.Planet(x = planets[elem]["x"],
 												y = planets[elem]["y"],
@@ -173,7 +174,7 @@ class PlanetSystem(object):
 	class Planet(object):
 
 		def __repr__(self):
-			return str(self.name) + " " + str(self.vx) + " " + str(self.vy) + " " + str(self.ax) + " " + str(self.ay)
+			return str(self.name) + ": x = " + str(self.x) + ", y = " + str(self.y) + ", vx = " + str(self.vx) + ", vy = " + str(self.vy) + ", ax = " + str(self.ax) + ", ay = " + str(self.ay)
 
 		def __init__(self, x, y, vx, vy, m, r, name, R, GG, B):
 			super(self.__class__, self).__init__()
@@ -188,11 +189,11 @@ class PlanetSystem(object):
 			self.B = B
 			self.name = name
 
-		def calculate_next_position(self, dt):
-			self.x = self.x + self.vx * dt + self.ax / 2.0 * dt **2
-			self.y = self.y + self.vy * dt + self.ay / 2.0 * dt **2
-			self.vx = self.vx + self.ax * dt
-			self.vy = self.vy + self.ay * dt
+		#def calculate_next_position(self, dt):
+		#	self.x = self.x + self.vx * dt + self.ax / 2.0 * dt **2
+		#	self.y = self.y + self.vy * dt + self.ay / 2.0 * dt **2
+		#	self.vx = self.vx + self.ax * dt
+		#	self.vy = self.vy + self.ay * dt
 
 		def calculate_prev_position(self, dt):
 			self.x_next = self.x
@@ -224,8 +225,8 @@ class PlanetSystem(object):
 				dif_y = other_planet.y - planet.y
 				# CHANGE HERE NOT MODIFY????
 				angle = atan2(dif_y,dif_x) 
-				#d_dif_x= dif_x - (other_planet["r"] + planet["r"]) * cos(angle)
-				#d_dif_y= dif_y - (other_planet["r"] + planet["r"]) * sin(angle)
+				d_dif_x= dif_x - (other_planet.r + planet.r) * cos(angle)
+				d_dif_y= dif_y - (other_planet.r + planet.r) * sin(angle)
 				a_module = G * other_planet.m / (hypot(dif_y,dif_x)**2)
 				#ipdb.set_trace()
 				ax += cos(angle) * a_module #* dif_x / hypot(dif_y,dif_x)
@@ -253,6 +254,8 @@ class PlanetSystem(object):
 			planet.update_a()
 
 	def loop(self):
+		#print self.planets
+		#ipdb.set_trace()
 		self.update_r()
 		self.get_a_next()
 		self.update_v()
@@ -272,11 +275,13 @@ class PlanetSystem(object):
 		dif_x = sun.x - earth.x
 		dif_y = sun.y - earth.y
 		angle = atan2(dif_y,dif_x)
+		ex = earth.x / hypot(earth.y,earth.x)
+		ey = earth.y / hypot(earth.y,earth.x)
 		evx = earth.vx / hypot(earth.vy,earth.vx)
 		evy = earth.vy / hypot(earth.vy,earth.vx)
 		r = ship_dic["rad"]
-		x = earth.x + cos(angle) * (ship_dic["r"] + earth.r)
-		y = earth.y + sin(angle) * (ship_dic["r"] + earth.r)
+		x = earth.x + ex * (ship_dic["r"] + earth.r)
+		y = earth.y + ey * (ship_dic["r"] + earth.r)
 		vx = earth.vx + evx * (ship_dic["v0"] + ship_dic["v_orb"]) 
 		vy = earth.vy + evy * (ship_dic["v0"] + ship_dic["v_orb"])
 		m = ship_dic["m"]
@@ -293,13 +298,14 @@ class PlanetSystem(object):
 		for planet in self.planets:
 			planet.calculate_prev_position(dt = dt)
 
+		
 		for planet in self.planets:
 			if planet.name == "ship":
-
 				dic = self.a_function(planet)
 				planet.ax_prev = dic['ax']
 				planet.ay_prev = dic['ay']
 
+		for planet in self.planets:
 			planet.x = planet.x_next
 			planet.y = planet.y_next
 
@@ -308,13 +314,21 @@ class PlanetSystem(object):
 		string = ""
 		string += '\t' + str(len(self.planets)) + '\n'
 		string += '\t' + str(i) + '\n'
+		
 		for planet in self.planets:
 			if planet.name =="sun":
 				#string += '\t' +  str(planet.x) + '\t' + str(planet.y) + '\t' + str(planet.r*100) + '\t' + str(planet.R) + '\t' + str(planet.GG) + '\t' + str(planet.B) + '\n' #+ str(particle["angle"]%360) + '\n'
 				string += '\t' +  str(planet.x) + '\t' + str(planet.y) + '\t' + str(planet.r*50) + '\t' + str(planet.R) + '\t' + str(planet.GG) + '\t' + str(planet.B) + '\n' #+ str(particle["angle"]%360) + '\n'
 			elif planet.name =="ship":
+				earth = filter(lambda planet: planet.name == "earth", self.planets)[0]
+				mars = filter(lambda planet: planet.name == "mars", self.planets)[0]
+
+				print "distance earth = " + str(hypot(planet.x - earth.x, planet.y - earth.y))
+				print "distance mars = " + str(hypot(planet.x - mars.x, planet.y - mars.y))
+		
+				print planet
 				#string += '\t' +  str(planet.x) + '\t' + str(planet.y) + '\t' + str(planet.r*100) + '\t' + str(planet.R) + '\t' + str(planet.GG) + '\t' + str(planet.B) + '\n' #+ str(particle["angle"]%360) + '\n'
-				string += '\t' +  str(planet.x) + '\t' + str(planet.y) + '\t' + str(planet.r*25000000) + '\t' + str(planet.R) + '\t' + str(planet.GG) + '\t' + str(planet.B) + '\n' #+ str(particle["angle"]%360) + '\n'
+				string += '\t' +  str(planet.x) + '\t' + str(planet.y) + '\t' + str(earth.r*500) + '\t' + str(planet.R) + '\t' + str(planet.GG) + '\t' + str(planet.B) + '\n' #+ str(particle["angle"]%360) + '\n'
 			else:				
 				#string += '\t' +  str(planet.x) + '\t' + str(planet.y) + '\t' + str(planet.r*100) + '\t' + str(planet.R) + '\t' + str(planet.GG) + '\t' + str(planet.B) + '\n' #+ str(particle["angle"]%360) + '\n'
 				string += '\t' +  str(planet.x) + '\t' + str(planet.y) + '\t' + str(planet.r*2500) + '\t' + str(planet.R) + '\t' + str(planet.GG) + '\t' + str(planet.B) + '\n' #+ str(particle["angle"]%360) + '\n'
