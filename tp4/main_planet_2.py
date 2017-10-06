@@ -13,6 +13,7 @@ from math import cos
 from math import sin
 from math import atan2
 from math import hypot
+from mpl_toolkits.mplot3d import Axes3D
 
 colored_traceback.add_hook()
 
@@ -69,13 +70,20 @@ def start(planets, ship):
 	distance = []
 	min_distance_dic = {}
 	min_t_dic = {}
+
+	angles = []
+	velocities = []
+	times = []
+	distances = []
+
+
 	#for angle in xrange(90,270):
-	for angle in frange(225.0,236.0,1.0):
+	for angle in frange(0.0,180.0,10.0):
 		print angle
 
 		min_distance_ang_dic = {}
 		min_t_ang_dic = {}
-		for v in frange(1e4,5.0e4,5e3):
+		for v in frange(1.0e4, 8.0e4, 1.0e3):
 			print v
 			min_distance = False
 			#TODO TODOOOOOO AND V 
@@ -84,17 +92,27 @@ def start(planets, ship):
 			planet_system.launch_ship(ship,delta_angle = angle *2*pi/360.0 , v = v)
 			min_distance = min_distance if min_distance else (planet_system.get_ship_distance_to_mars(),0,v)
 			for index in xrange(1,int(tf/dt)+1):
+
 				t = index * dt
+
+				planet_system.loop()
+
+				
 				#import ipdb; ipdb.set_trace()
 									
-				planet_system.loop()
+				
 				if t % (dt2) == 0:
 					info += planet_system.get_info(index)
 				new_distance = (planet_system.get_ship_distance_to_mars(),t,v)
 				if min_distance[0] > new_distance[0]:
 					min_distance = new_distance
-					min_distance_ang_dic[v] = min_distance
+					min_distance_ang_dic[v] = min_distance[0]
 					min_t_ang_dic[v] = t
+
+			angles.append(angle)
+			velocities.append(v)
+			times.append(min_distance[1])
+			distances.append(min_distance[0])
 
 		min_distance_dic[angle] = min_distance_ang_dic
 		min_t_dic[angle] = min_t_ang_dic
@@ -105,8 +123,33 @@ def start(planets, ship):
 	with open('output_planet/data.txt', 'w') as outfile:
 		outfile.write(str(distance))
 
-	plot(min_t_dic, min_distance_dic)
+	with open('output_planet/datat.txt', 'w') as outfile:
+		for i in range(len(angles)):
+			outfile.write(str(angles[i]) + '\t' + str(velocities[i]) + '\t' + str(times[i]) + '\n')
 
+	with open('output_planet/datad.txt', 'w') as outfile:
+		for i in range(len(angles)):
+			outfile.write(str(angles[i]) + '\t' + str(velocities[i]) + '\t' + str(distances[i]) + '\n')
+
+	# print min_t_dic
+	# print min_distance_dic
+
+	# plot_surface([angles, velocities, times], 'times')
+	# plot_surface([angles, velocities, distances], 'distances')
+
+	# plot(min_t_dic, min_distance_dic)
+
+def plot_surface(surface, f):
+	fig = plt.figure()
+	ax = fig.add_subplot(111, projection='3d')
+	legends = ['Terreno Objetivo']
+	ax.scatter(surface[0], surface[1], surface[2], c="y")
+	plt.legend(legends)
+	for angle in range(0, 181, 30):
+		ax.view_init(30, angle)
+		plt.savefig('terrain' + f + '-angle' + str(angle) + '.png')
+
+	plt.close()
 
 def plot(t_dic, distance_dic):
 	
