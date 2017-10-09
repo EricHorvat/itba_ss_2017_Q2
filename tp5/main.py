@@ -14,12 +14,6 @@ from granular_gear import GranularGear
 
 colored_traceback.add_hook()
 
-m = 0.1
-k = 0
-gamma = 0
-dt = 0.01
-gamma_div_2m = 0
-
 def init():
 	folders = ['output_particle']
 	for folder in folders:
@@ -58,30 +52,23 @@ def parse_arguments():
 
 	return arguments
 
-def a_function(r,v):
-	return -k/m*r - gamma/m *v
+def start():
 
-def r_analitic_function(t):
-	return exp(- gamma_div_2m * t ) * cos ( (( (k/m) - gamma_div_2m **2) ** 0.5) * t)
-
-def v_analitic_function(t):
-	return - gamma_div_2m * exp(- gamma_div_2m * t ) * cos ( (( (k/m) - gamma_div_2m **2) ** 0.5) * t) + exp(- gamma_div_2m * t ) * (-1 ) * sin ( (( (k/m) - gamma_div_2m **2) ** 0.5) * t) *  (( (k/m) - gamma_div_2m **2) ** 0.5)	
-
-def start(dt = dt):
-
-	gear = GranularGear5(r = 1, v = - gamma_div_2m, a_function = a_function, dt = dt, k = k, m = m)
-	strr = ""
+	gear = GranularGear5(N = N, L = L, W = W, D = D, d_min = d_min, d_max = d_max, g = g, kT = kT, kN = kN, m = m, tf = tf, dt = dt)
+	positions_str = ""
 	for index in xrange(1,int(tf/dt)+1):
 		t = index * dt
 		gear.loop()
-		#strr+= (str(verlet[R])) + '\t' + str(analitic[R]) + '\t' + (str(verlet[V])) + '\t' + str(analitic[V]) + '\t' + (str(verlet[A])) + '\t' + str(analitic[A]) + '\n'
-
+		positions_str+= gear.get_info(i = index, L = L, W = W, D = D)
 	 
-	plot(analitic.r_history,verlet.r_history,beeman.r_history, gear.r_history)
+	#plot(analitic.r_history,verlet.r_history,beeman.r_history, gear.r_history)
 
 	with open('output_particle/data.txt', 'w') as outfile:
-		methods = [verlet,beeman,gear]
-		outfile.write(reduce(lambda accum,elem: accum + str(elem.__class__) + str(elem.get_error(analitic.r_history)) + " ,",methods,""))
+		outfile.write(positions_str)
+
+	#with open('output_particle/data.txt', 'w') as outfile:
+	#	methods = [verlet,beeman,gear]
+	#	outfile.write(reduce(lambda accum,elem: accum + str(elem.__class__) + str(elem.get_error(analitic.r_history)) + " ,",methods,""))
 
 def plot(analitic_array, verlet_array, beeman_array, gear_array):
 	legends = ['Analitic','Velvet','Beeman','Gear']
@@ -112,7 +99,7 @@ def main():
 
 	pprint.pprint(data)
 
-	global m,k,gamma,tf,dt, gamma_div_2m
+	global N,L,W,D,d_min,d_max,g,tf,dt,kT,kN,m
 
 	N = data["N"]
 	L = data["L"]

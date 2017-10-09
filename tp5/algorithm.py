@@ -1,20 +1,25 @@
 
 class Algorithm(object):
 	
-	def __init__(self, r, v, a_function):
-		self.a_function = a_function
-		self.r = r
-		self.v = v
-		self.a = a_function(r = r, v = v)
-		self.r_history = []#[r]
-		self.v_history = []#[v]
-		self.a_history = []#[self.a]
+	def __init__(self):
+		pass
 
-	def loop(self, *params):
-		self.basic_loop(params) if len(params) > 0 else self.basic_loop()
-		self.r_history.append(self.r)
-		self.v_history.append(self.v)
-		self.a_history.append(self.a)
+	def loop(self):
+		self.basic_loop()
+		
+	def get_info(self, i, L, W, D):
+		string = ""
+		string += '\t' + str(len(self.particle)+4) + '\n'
+		string += '\t' + str(i) + '\n'
+		
+		for particle in self.particles:
+			string += '\t' +  str(particle.x) + '\t' + str(particle.y) + '\t' + str(particle.r) + '\t' + str(1) + '\t' + str(0) + '\t' + str(0) + '\n'
+		string += '\t' + str(0) + '\t' + str(0) + '\t' + str(0.000000001) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
+		string += '\t' + str(W) + '\t' + str(0) + '\t' + str(0.000000001) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
+		string += '\t' + str(0) + '\t' + str(L) + '\t' + str(0.000000001) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
+		string += '\t' + str(W) + '\t' + str(L) + '\t' + str(0.000000001) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
+		#ipdb.set_trace()
+		return string
 
 	def basic_loop(self):
 		raise "Not implemented method"

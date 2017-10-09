@@ -24,9 +24,6 @@ class GranularGear(Algorithm):
 						break
 					if hypot(particle.x - other_particle.x, particle.y - other_particle.y) < other_particle.r + particle.r:
 						break
-			
-		## TODO EDIT
-		self.r_corr = self.get_initial_r_corr(r = r, v = v, k = k, m = m)
 		
 
 	def basic_loop(self):
@@ -45,13 +42,18 @@ class GranularGear(Algorithm):
 			self.a = {"x" : 0,"y" : g}
 			self.id = idd
 			self.r_pred = [{"x" : 0,"y" : 0} for i in xrange(1,7)]
-			self.alpha = [3/16.0,251/360.0,1.0,11/18.0,1/6.0,1/60.0]
+			self.r_corr = self.get_initial_r_corr()
+			self.alpha = [3/20.0,251/360.0,1.0,11/18.0,1/6.0,1/60.0]
 
 		def a_function(self,particles, use_pred):
 			#TODO DO, SET NEIGHTBOURS
 			for other_particle in particles:
 				if other_particle.id != self.id:
-					pass
+					r_dif = other_particle.r + particle.r - hypot(particle.x - other_particle.x, particle.y - other_particle.y) 
+					if r_dif > 0.0:
+						FN = - kN * r_dif
+						FN = - kT * r_dif * ()
+						pass
 
 		def update_corrected(self):
 			ax_diff = self.r_corr[2]["x"] - self.r_pred[2]["x"]
@@ -93,17 +95,17 @@ class GranularGear(Algorithm):
 			self.r_pred[5][axis] =	r[5][axis]
 
 		def get_initial_r_corr(self,particles):
-			a = self.a_function(particles)
-			next_x = self.x+self.vx*self.dt+ a["x"]/2.0*self.dt**2
-			next_y = self.y+self.vy*self.dt+ a["y"]/2.0*self.dt**2
-			next_vx = self.vx+a["x"]*self.dt
-			next_vy = self.vy+a["y"]*self.dt
-			dr = next_r - r
-			k_div_m = k/m
+			#a = self.a_function(particles)
+			#next_x = self.x+self.vx*self.dt+ a["x"]/2.0*self.dt**2
+			#next_y = self.y+self.vy*self.dt+ a["y"]/2.0*self.dt**2
+			#next_vx = self.vx+a["x"]*self.dt
+			#next_vy = self.vy+a["y"]*self.dt
+			#dr = next_r - r
+			#k_div_m = k/m
 			#TODO EDIT
-			return [{"x" : next_x,"y" : next_y},
-					{"x" : next_vx,"y" : next_vy},
-					- k_div_m * dr, 
-					- k_div_m * v, 
-					k_div_m ** 2 * dr, 
-					k_div_m ** 2 * v]
+			return [self.r,
+					self.v,
+					self.a,
+					{"x" : 0.0 self.r,"y" : 0.0},
+					{"x" : 0.0 self.r,"y" : 0.0},
+					{"x" : 0.0 self.r,"y" : 0.0}]
