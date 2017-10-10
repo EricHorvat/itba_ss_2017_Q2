@@ -15,7 +15,7 @@ from granular_gear import GranularGear
 colored_traceback.add_hook()
 
 def init():
-	folders = ['output_particle']
+	folders = ['output']
 	for folder in folders:
 		folder_path = os.path.join('.', folder)
 		if not os.path.exists(folder_path):
@@ -33,7 +33,7 @@ def usage():
 
 def parse_arguments():
 	arguments = {
-		'config': './config_particle/config.json',
+		'config': './config/config.json',
 	}
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], 'hc:tn', ['help'])
@@ -54,16 +54,17 @@ def parse_arguments():
 
 def start():
 
-	gear = GranularGear5(N = N, L = L, W = W, D = D, d_min = d_min, d_max = d_max, g = g, kT = kT, kN = kN, m = m, tf = tf, dt = dt)
+	gear = GranularGear(N = N, L = L, W = W, D = D, d_min = d_min, d_max = d_max, g = g, kT = kT, kN = kN, m = m, tf = tf, dt = dt)
 	positions_str = ""
 	for index in xrange(1,int(tf/dt)+1):
 		t = index * dt
+		print t
 		gear.loop()
 		positions_str+= gear.get_info(i = index, L = L, W = W, D = D)
 	 
 	#plot(analitic.r_history,verlet.r_history,beeman.r_history, gear.r_history)
 
-	with open('output_particle/data.txt', 'w') as outfile:
+	with open('output/data.txt', 'w') as outfile:
 		outfile.write(positions_str)
 
 	#with open('output_particle/data.txt', 'w') as outfile:

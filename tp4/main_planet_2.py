@@ -145,10 +145,9 @@ def plot_surface(surface, f):
 	legends = ['Terreno Objetivo']
 	ax.scatter(surface[0], surface[1], surface[2], c="y")
 	plt.legend(legends)
-	for angle in range(0, 181, 30):
+	for angle in range(0, 181, 5):
 		ax.view_init(30, angle)
 		plt.savefig('terrain' + f + '-angle' + str(angle) + '.png')
-
 	plt.close()
 
 def plot(t_dic, distance_dic):

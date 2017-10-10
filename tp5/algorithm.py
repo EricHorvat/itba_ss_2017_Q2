@@ -9,11 +9,11 @@ class Algorithm(object):
 		
 	def get_info(self, i, L, W, D):
 		string = ""
-		string += '\t' + str(len(self.particle)+4) + '\n'
+		string += '\t' + str(len(self.particles)+4) + '\n'
 		string += '\t' + str(i) + '\n'
 		
 		for particle in self.particles:
-			string += '\t' +  str(particle.x) + '\t' + str(particle.y) + '\t' + str(particle.r) + '\t' + str(1) + '\t' + str(0) + '\t' + str(0) + '\n'
+			string += '\t' +  str(particle.r_corr[0]["x"]) + '\t' + str(particle.r_corr[0]["y"]) + '\t' + str(particle.rad) + '\t' + str(1) + '\t' + str(0) + '\t' + str(0) + '\n'
 		string += '\t' + str(0) + '\t' + str(0) + '\t' + str(0.000000001) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
 		string += '\t' + str(W) + '\t' + str(0) + '\t' + str(0.000000001) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
 		string += '\t' + str(0) + '\t' + str(L) + '\t' + str(0.000000001) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
