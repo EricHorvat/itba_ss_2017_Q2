@@ -10,7 +10,11 @@ import numpy as np
 from math import exp
 from math import cos
 from math import sin
+from math import hypot
 from granular_gear import GranularGear
+from granular_beeman import GranularBeeman
+from random import random
+import time
 
 colored_traceback.add_hook()
 
@@ -54,22 +58,71 @@ def parse_arguments():
 
 def start():
 
-	gear = GranularGear(N = N, L = L, W = W, D = D, d_min = d_min, d_max = d_max, g = g, kT = kT, kN = kN, m = m, tf = tf, dt = dt)
-	positions_str = ""
+	positions_str = {"v":""}
+	gear = GranularGear(N = N, L = L, W = W, D = D, d_min = d_min, d_max = d_max, g = g, kT = kT, kN = kN, m = m, tf = tf, dt = dt, system = positions_str)
+	beeman = GranularBeeman(N = N, L = L, W = W, D = D, d_min = d_min, d_max = d_max, g = g, kT = kT, kN = kN, m = m, tf = tf, dt = dt)
+
+	method = beeman
+
+	if case != "None":
+		for particle in method.particles:
+			if case == "Down":
+				pass 
+			if case == "Right":
+				particle.gx = particle.g
+				particle.a = {"x" : particle.gx,"y" : 0.0}
+				particle.a_prev = {"x" : particle.gx,"y" : 0.0}
+				particle.g = 0.0
+			if case == "Diag":
+				particle.v = {"x" : 0.050,"y" : -0.020}
+				particle.a = {"x" : 0.0,"y" : 0.0}
+				particle.a_prev = {"x" : 0.0,"y" : 0.0}
+				particle.g = 0.0
+				y = random() * L /8.0 + L *3/8.0
+				x = 3/4.0 * W  + particle.id * 0.001
+				
+				particle.r = {"x" : x,"y" : y}
+			if case == "Test":
+
+				found = False
+				while not found:
+
+					y = random() * (L - particle.rad) + particle.rad 
+					x = 3/4.0 * W  + particle.id * 0.01
+					particle.r = {"x" : x,"y" : y}
+					for other_particle in method.particles:
+						if other_particle.id == particle.id:
+							found = True
+							break
+						if hypot(particle.r["x"] - other_particle.r["x"], particle.r["y"] - other_particle.r["y"]) < other_particle.rad + particle.rad:
+							break
+
+				
+			#particle.r_corr= particle.get_initial_r_corr()
+
+	energy = []
+	energy_var = []
+			
 	for index in xrange(1,int(tf/dt)+1):
 		t = index * dt
-		print t
-		gear.loop()
-		positions_str+= gear.get_info(i = index, L = L, W = W, D = D)
-	 
+		method.loop()
+		if (index % int(dt2/dt) == 0):
+			print t
+			positions_str["v"] = positions_str["v"] + method.get_info(i = index, L = L, W = W, D = D)
+			energy.append(method.get_energy_sum())
+			energy_var.append(energy[0] if len(energy) == 1 else energy[-1] - energy[-2])
+
 	#plot(analitic.r_history,verlet.r_history,beeman.r_history, gear.r_history)
 
 	with open('output/data.txt', 'w') as outfile:
-		outfile.write(positions_str)
+		outfile.write(positions_str["v"])
 
-	#with open('output_particle/data.txt', 'w') as outfile:
-	#	methods = [verlet,beeman,gear]
-	#	outfile.write(reduce(lambda accum,elem: accum + str(elem.__class__) + str(elem.get_error(analitic.r_history)) + " ,",methods,""))
+	with open('output/energy.txt', 'w') as outfile:
+		outfile.write(str(energy))
+
+	with open('output/energy_var.txt', 'w') as outfile:
+		outfile.write(str(energy_var))
+
 
 def plot(analitic_array, verlet_array, beeman_array, gear_array):
 	legends = ['Analitic','Velvet','Beeman','Gear']
@@ -100,7 +153,7 @@ def main():
 
 	pprint.pprint(data)
 
-	global N,L,W,D,d_min,d_max,g,tf,dt,kT,kN,m
+	global N,L,W,D,d_min,d_max,g,tf,dt,kT,kN,m,dt2,case
 
 	N = data["N"]
 	L = data["L"]
@@ -111,11 +164,19 @@ def main():
 	g = data["g"]
 	tf = data["tf"]
 	dt = data["dt"]
+	dt2 = data["dt2"]
 	kT = data["kT"]
 	kN = data["kN"]
 	m = data["m"]
+	case = data["case"]
 	
+	start_time = time.time()
+
 	start()
+
+	run_time = time.time() - start_time
+
+	print run_time
 
 
 if __name__ == '__main__':
