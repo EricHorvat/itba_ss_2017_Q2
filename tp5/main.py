@@ -11,7 +11,6 @@ from math import exp
 from math import cos
 from math import sin
 from math import hypot
-from granular_gear import GranularGear
 from granular_beeman import GranularBeeman
 from random import random
 import time
@@ -59,8 +58,7 @@ def parse_arguments():
 def start():
 
 	positions_str = {"v":""}
-	gear = GranularGear(N = N, L = L, W = W, D = D, d_min = d_min, d_max = d_max, g = g, kT = kT, kN = kN, m = m, tf = tf, dt = dt, system = positions_str)
-	beeman = GranularBeeman(N = N, L = L, W = W, D = D, d_min = d_min, d_max = d_max, g = g, kT = kT, kN = kN, m = m, tf = tf, dt = dt)
+	beeman = GranularBeeman(L = L, W = W, D = D, d_min = d_min, d_max = d_max, g = g, kT = kT, kN = kN, m = m, tf = tf, dt = dt)
 
 	method = beeman
 
@@ -102,6 +100,11 @@ def start():
 
 	energy = []
 	energy_var = []
+	Q = []
+	Q2 = []
+	summ2 = 0
+	Q3 = []
+	summ3 = 0
 			
 	for index in xrange(1,int(tf/dt)+1):
 		t = index * dt
@@ -111,6 +114,21 @@ def start():
 			positions_str["v"] = positions_str["v"] + method.get_info(i = index, L = L, W = W, D = D)
 			energy.append(method.get_energy_sum())
 			energy_var.append(energy[0] if len(energy) == 1 else energy[-1] - energy[-2])
+
+		if t * 4.0 / sliding_window - int (t * 4.0 / sliding_window) == 0.0:
+			Q3.append((method.reset_count - summ2)* 4.0 / sliding_window)
+			summ3 = method.reset_count
+
+		if t * 5.0 / sliding_window - int (t * 5.0 / sliding_window) == 0.0:
+			Q2.append((method.reset_count - summ2)* 5.0 / sliding_window)
+			summ2 = method.reset_count
+
+		if t / sliding_window - int(t / sliding_window) == 0.0:
+			Q.append(method.reset_count / sliding_window)
+			method.reset_count = 0
+			summ2 = 0
+			summ3 = 0
+	print method.max_force
 
 	#plot(analitic.r_history,verlet.r_history,beeman.r_history, gear.r_history)
 
@@ -122,6 +140,15 @@ def start():
 
 	with open('output/energy_var.txt', 'w') as outfile:
 		outfile.write(str(energy_var))
+
+	with open('output/Q.txt', 'w') as outfile:
+		outfile.write(str(Q))
+
+	with open('output/Q2.txt', 'w') as outfile:
+		outfile.write(str(Q2))
+
+	with open('output/Q3.txt', 'w') as outfile:
+		outfile.write(str(Q3))
 
 
 def plot(analitic_array, verlet_array, beeman_array, gear_array):
@@ -153,9 +180,8 @@ def main():
 
 	pprint.pprint(data)
 
-	global N,L,W,D,d_min,d_max,g,tf,dt,kT,kN,m,dt2,case
+	global L,W,D,d_min,d_max,g,tf,dt,kT,kN,m,dt2,case,sliding_window
 
-	N = data["N"]
 	L = data["L"]
 	W = data["W"] 
 	D = data["D"] 
@@ -169,6 +195,7 @@ def main():
 	kN = data["kN"]
 	m = data["m"]
 	case = data["case"]
+	sliding_window = data["sw"]
 	
 	start_time = time.time()
 
