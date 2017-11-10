@@ -26,11 +26,13 @@ class GranularBeeman(Algorithm):
 
 
 	"""docstring for Beeman"""
-	def __init__(self, L, W, D, d_min, d_max, g, tf, dt, kT, kN, m):
+	def __init__(self, N, L, W, D, d_min, d_max, g, tf, dt, kT, kN, m, dN):
 		super(GranularBeeman, self).__init__()
 		self.dt = dt
+		self.dN = dN
 		self.particles = []
 		self.L = L
+		self.N = N
 		self.W = W
 		self.D = D
 		self.d_max = d_max
@@ -43,22 +45,18 @@ class GranularBeeman(Algorithm):
 		self.fake_particles = self.generate_fake_particles()
 		self.reset_count = 0
 		self.max_force = 0.0
+		self.Q = [[] for i in xrange(0,len(self.dN))]
+		self.Qt = [[] for i in xrange(0,len(self.dN))]
+		self.Qt_sum = [[0] for i in xrange(0,len(self.dN))]
 		
 		end = False
 		idd = 0
-		while not end:
-			#and 20 > len(self.particles):
+		while N > len(self.particles):
 			print "-------------"
 			print idd
 			found = False
 			particle = self.Particle(m = m, idd = idd, g = g, dt = dt, W = W, L = L, D = D, kT = kT, kN = kN, algorithm = self, cell_l_number = cell_l_number, cell_w_number = cell_w_number)
-			tries = 0
 			while not found:
-				if tries > 10:
-					end = True
-					found = True 
-					break
-				tries += 1
 				r = (random() * (d_max - d_min) + d_min)/2.0
 				x = random() * (W - 2.0 * r) + r 
 				y = random() * (L - 2.0 * r) + r
@@ -79,7 +77,7 @@ class GranularBeeman(Algorithm):
 		#import ipdb; ipdb.set_trace()
 
 		
-	def basic_loop(self):
+	def basic_loop(self,t):
 		#import ipdb; ipdb.set_trace()
 		self.ppp = False
 		particles = filter(lambda p: p.activated,self.particles)
@@ -116,6 +114,13 @@ class GranularBeeman(Algorithm):
 				particle.activated = True
 				if particle.id not in map(lambda p: p.id, particles):
 					particles.append(particle)
+				for i, dn in enumerate (self.dN):
+					if self.reset_count % dn == 0:
+						print i
+						t_dif= (t-self.Qt_sum[i][-1])
+						self.Q[i].append(dn/(t_dif))
+						self.Qt[i].append(t_dif)
+						self.Qt_sum[i].append(t)
 
 
 		#if self.ppp:
@@ -151,8 +156,7 @@ class GranularBeeman(Algorithm):
 		def a_function(self,particles):
 			Fx = 0.0
 			Fy = 0.0
-			FxN = 0.0
-			FyN = 0.0
+			FN_sum = 0.0
 			#neighbours = self.getNeighbours(particles)
 			particles = filter(lambda p: p.activated,particles)
 					
@@ -176,8 +180,7 @@ class GranularBeeman(Algorithm):
 
 						Fx += FN * enx + FT * (-eny)
 						Fy += FN * eny + FT * enx
-						FxN += FN * enx
-						FyN += FN * eny
+						FN_sum += abs(FN)
 			if self.r["x"] < self.rad and self.in_sile:
 				#import ipdb; ipdb.set_trace() 
 				r_dif = self.rad - self.r["x"]
@@ -189,8 +192,7 @@ class GranularBeeman(Algorithm):
 				FT = - self.kT * r_dif * (-eny * dif_vx + enx * dif_vy)
 				Fx += FN * enx + FT * (-eny)
 				Fy += FN * eny + FT * (enx)
-				FxN += FN * enx
-				FyN += FN * eny
+				FN_sum += abs(FN)
 			elif self.r["x"] > (self.W - self.rad) and self.in_sile:
 				#import ipdb; ipdb.set_trace()
 				r_dif = self.r["x"] - self.W + self.rad
@@ -202,8 +204,7 @@ class GranularBeeman(Algorithm):
 				FT = - self.kT * r_dif * (-eny * dif_vx + enx * dif_vy) 
 				Fx += FN * enx + FT * (-eny)
 				Fy += FN * eny + FT * enx
-				FxN += FN * enx
-				FyN += FN * eny
+				FN_sum += abs(FN)
 			if self.r["y"] < self.rad and (self.W-self.D)/2.0 + self.rad < self.r["x"] < (self.W+self.D)/2.0 - self.rad:
 				self.in_sile = False 
 				pass
@@ -217,8 +218,7 @@ class GranularBeeman(Algorithm):
 				FT = - self.kT * r_dif * (-eny * dif_vx + enx * dif_vy) 
 				Fx += FN * enx + FT * (-eny)
 				Fy += FN * eny + FT * enx
-				FxN += FN * enx
-				FyN += FN * eny
+				FN_sum += abs(FN)
 			elif self.r["y"] > (self.L - self.rad) and self.in_sile:
 				#import ipdb; ipdb.set_trace()
 				r_dif = self.r["y"] - self.L + self.rad
@@ -230,9 +230,8 @@ class GranularBeeman(Algorithm):
 				FT = - self.kT * r_dif * (-eny * dif_vx + enx * dif_vy) 
 				Fx += FN * enx + FT * (-eny)
 				Fy += FN * eny + FT * enx
-				FxN += FN * enx
-				FyN += FN * eny
-			self.FN = hypot(FxN,FyN)
+				FN_sum += abs(FN)
+			self.FN = FN_sum
 			return {"x" : -self.gx + Fx/self.m,"y" : -self.g + Fy/self.m}
 
 		def update_r(self, dt):

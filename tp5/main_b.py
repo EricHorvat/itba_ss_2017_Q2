@@ -36,7 +36,7 @@ def usage():
 
 def parse_arguments():
 	arguments = {
-		'config': './config/config.json',
+		'config': './config/config_b.json',
 	}
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], 'hc:tn', ['help'])
@@ -58,7 +58,7 @@ def parse_arguments():
 def start():
 
 	positions_str = {"v":""}
-	beeman = GranularBeeman(L = L, W = W, D = 0.0, d_min = d_min, d_max = d_max, g = g, kT = kT, kN = kN, m = m, tf = tf, dt = dt)
+	beeman = GranularBeeman(N = N, L = L, W = W, D = 0.0, d_min = d_min, d_max = d_max, g = g, kT = kT, kN = kN, m = m, tf = tf, dt = dt)
 
 	method = beeman
 
@@ -108,30 +108,33 @@ def start():
 		method.loop()
 		if (index % int(dt2/dt) == 0):
 			print t
-			positions_str["v"] = positions_str["v"] + method.get_info(i = index, L = L, W = W, D = D)
+			positions_str["v"] = positions_str["v"] + method.get_info(i = index, L = L, W = W)
 			energy.append(method.get_energy_sum())
 			energy_var.append(energy[0] if len(energy) == 1 else energy[-1] - energy[-2])
 			#if len(energy) > 100 and max (energy[-100:]) < 0.0001:
 			#	end = True
 			#	break
-			if len(energy) > 100:
-				if minn:
-					t = min (energy[-20:])
-					if t == minn:
-						count +=1
-						end = False if count < 10 else True
-					else:
-						minn = minn if minn < t else t
-						count = 0
+
+			actual_energy = energy[-1]
+			if minn:
+			
+				print int(round(time_equal/dt2))
+				if abs(actual_energy - minn) < min_error:
+					count +=1
+					end = False if count < int(round(time_equal/dt2)) else True
 				else:
-					minn = min (energy[-20:]) 
-				print min (energy[-20:])
+					minn = actual_energy
+					count = 0
+			else:
+				minn = actual_energy
+				count = 0
+			print actual_energy
+			print count
+			
 			if index % 1000 == 0:
 				with open('output_b/data'+str(index)+'.txt', 'w') as outfile:
 					outfile.write(positions_str["v"])
 		index +=1
-		if minn > 0.001:
-			end = False
 
 
 	#plot(analitic.r_history,verlet.r_history,beeman.r_history, gear.r_history)
@@ -144,6 +147,12 @@ def start():
 
 	with open('output_b/energy_var.txt', 'w') as outfile:
 		outfile.write(str(energy_var))
+
+	with open('output_b/max_h.txt', 'w') as outfile:
+		outfile.write(str(max(map(lambda particle: particle.r["y"] + particle.rad, method.particles))))
+
+	with open('output_b/max_force.txt', 'w') as outfile:
+		outfile.write(str(method.max_force))
 
 
 def plot(analitic_array, verlet_array, beeman_array, gear_array):
@@ -175,11 +184,11 @@ def main():
 
 	pprint.pprint(data)
 
-	global L,W,D,d_min,d_max,g,tf,dt,kT,kN,m,dt2,case
+	global N,L,W,D,d_min,d_max,g,tf,dt,kT,kN,m,dt2,case,min_error,time_equal
 
+	N = data["N"]
 	L = data["L"]
-	W = data["W"] 
-	D = data["D"] 
+	W = data["W"]
 	d_min = data["d_min"]
 	d_max = data["d_max"]
 	g = data["g"]
@@ -190,6 +199,8 @@ def main():
 	kN = data["kN"]
 	m = data["m"]
 	case = data["case"]
+	min_error = data["min_error"]
+	time_equal = data["time_equal"]
 	
 	start_time = time.time()
 

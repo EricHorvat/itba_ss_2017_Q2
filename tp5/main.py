@@ -55,10 +55,24 @@ def parse_arguments():
 
 	return arguments
 
+def Q_post_process(Q,QT):
+	Q_rev = Q
+	Q_rev.reverse()
+	i = 0
+	avg = 0.0
+	found = False
+	while not found:
+		avg = (avg * i + Q_rev[i]) / (i + 1.0)
+		print i
+		if i == len(Q_rev) - 1 or (i > 5 and abs(Q_rev[i+1] - avg) > avg * 0.01):
+			found = True
+		i+=1 
+	return (Q[-i:],QT[-i:])
+
 def start():
 
 	positions_str = {"v":""}
-	beeman = GranularBeeman(L = L, W = W, D = D, d_min = d_min, d_max = d_max, g = g, kT = kT, kN = kN, m = m, tf = tf, dt = dt)
+	beeman = GranularBeeman(N = N, L = L, W = W, D = D, d_min = d_min, d_max = d_max, g = g, kT = kT, kN = kN, m = m, tf = tf, dt = dt, dN = dN)
 
 	method = beeman
 
@@ -108,27 +122,13 @@ def start():
 			
 	for index in xrange(1,int(tf/dt)+1):
 		t = index * dt
-		method.loop()
+		method.loop(t)
 		if (index % int(dt2/dt) == 0):
 			print t
 			positions_str["v"] = positions_str["v"] + method.get_info(i = index, L = L, W = W, D = D)
 			energy.append(method.get_energy_sum())
 			energy_var.append(energy[0] if len(energy) == 1 else energy[-1] - energy[-2])
 
-		if t * 4.0 / sliding_window - int (t * 4.0 / sliding_window) == 0.0:
-			Q3.append((method.reset_count - summ2)* 4.0 / sliding_window)
-			summ3 = method.reset_count
-
-		if t * 5.0 / sliding_window - int (t * 5.0 / sliding_window) == 0.0:
-			Q2.append((method.reset_count - summ2)* 5.0 / sliding_window)
-			summ2 = method.reset_count
-
-		if t / sliding_window - int(t / sliding_window) == 0.0:
-			Q.append(method.reset_count / sliding_window)
-			method.reset_count = 0
-			summ2 = 0
-			summ3 = 0
-	print method.max_force
 
 	#plot(analitic.r_history,verlet.r_history,beeman.r_history, gear.r_history)
 
@@ -141,32 +141,17 @@ def start():
 	with open('output/energy_var.txt', 'w') as outfile:
 		outfile.write(str(energy_var))
 
-	with open('output/Q.txt', 'w') as outfile:
-		outfile.write(str(Q))
 
-	with open('output/Q2.txt', 'w') as outfile:
-		outfile.write(str(Q2))
-
-	with open('output/Q3.txt', 'w') as outfile:
-		outfile.write(str(Q3))
-
-
-def plot(analitic_array, verlet_array, beeman_array, gear_array):
-	legends = ['Analitic','Velvet','Beeman','Gear']
-	plt.plot(xrange(len(analitic_array)), analitic_array)
-	plt.plot(xrange(len(analitic_array)), verlet_array)
-	plt.plot(xrange(len(analitic_array)), beeman_array)
-	plt.plot(xrange(len(analitic_array)), gear_array)
-	plt.legend(legends)
-	plt.xlabel('t')
-	plt.ylabel('Y')
-	_max = 1.0
-	_min = -1.0
-	_delta = (_max - _min) / 15
-	_delta = 0.01 if _delta == 0 else _delta
-	plt.yticks(np.arange(_min - _delta, _max + _delta, _delta))
-	plt.savefig(os.path.join(os.getcwd(),"output_particle/i.png"))
-	plt.close()
+	for i in xrange(0,len(method.Q)):
+		(Q,QT) = Q_post_process(method.Q[i],method.Qt[i][1:])
+		with open('output/Q_'+str(i)+'.txt', 'w') as outfile:
+			outfile.write(str(Q))
+		with open('output/Qt_'+str(i)+'.txt', 'w') as outfile:
+			outfile.write(str(QT))
+		with open('output/Q'+str(i)+'.txt', 'w') as outfile:
+			outfile.write(str(method.Q[i]))
+		with open('output/Qt'+str(i)+'.txt', 'w') as outfile:
+			outfile.write(str(method.Qt[i][1:]))
 
 def main():
 
@@ -180,8 +165,9 @@ def main():
 
 	pprint.pprint(data)
 
-	global L,W,D,d_min,d_max,g,tf,dt,kT,kN,m,dt2,case,sliding_window
+	global N,L,W,D,d_min,d_max,g,tf,dt,kT,kN,m,dt2,case,dN
 
+	N = data["N"]
 	L = data["L"]
 	W = data["W"] 
 	D = data["D"] 
@@ -195,7 +181,7 @@ def main():
 	kN = data["kN"]
 	m = data["m"]
 	case = data["case"]
-	sliding_window = data["sw"]
+	dN = data["dN"]
 	
 	start_time = time.time()
 

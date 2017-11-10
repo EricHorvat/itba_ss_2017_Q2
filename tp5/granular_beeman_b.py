@@ -26,11 +26,12 @@ class GranularBeeman(Algorithm):
 
 
 	"""docstring for Beeman"""
-	def __init__(self, L, W, D, d_min, d_max, g, tf, dt, kT, kN, m):
+	def __init__(self, N, L, W, D, d_min, d_max, g, tf, dt, kT, kN, m):
 		super(GranularBeeman, self).__init__()
 		self.dt = dt
 		#self.particles = [False for i in xrange(0,N)]
 		self.particles = []
+		self.N = N
 		self.L = L
 		self.W = W
 		self.D = D
@@ -46,19 +47,12 @@ class GranularBeeman(Algorithm):
 		
 		end = False
 		idd = 0
-		while not end:
-			#and 20 > len(self.particles):
+		while N > len(self.particles):
 			print "-------------"
 			print idd
 			found = False
 			particle = self.Particle(m = m, idd = idd, g = g, dt = dt, W = W, L = L, D = D, kT = kT, kN = kN, algorithm = self, cell_l_number = cell_l_number, cell_w_number = cell_w_number)
-			tries = 0
 			while not found:
-				if tries > 10:
-					end = True
-					found = True 
-					break
-				tries += 1
 				r = (random() * (d_max - d_min) + d_min)/2.0
 				x = random() * (W - 2.0 * r) + r 
 				y = random() * (L - 2.0 * r) + r
@@ -149,8 +143,7 @@ class GranularBeeman(Algorithm):
 		def a_function(self,particles):
 			Fx = 0.0
 			Fy = 0.0
-			FxN = 0.0 
-			FyN = 0.0
+			FN_sum = 0.0 
 			#neighbours = self.getNeighbours(particles)
 			particles = filter(lambda p: p.activated,particles)
 					
@@ -174,8 +167,7 @@ class GranularBeeman(Algorithm):
 
 						Fx += FN * enx + FT * (-eny)
 						Fy += FN * eny + FT * enx
-						FxN += FN * enx 
-						FyN += FN * eny 
+						FN_sum += abs(FN) 
 			if self.r["x"] < self.rad and self.in_sile:
 				#import ipdb; ipdb.set_trace() 
 				r_dif = self.rad - self.r["x"]
@@ -187,8 +179,7 @@ class GranularBeeman(Algorithm):
 				FT = - self.kT * r_dif * (-eny * dif_vx + enx * dif_vy)
 				Fx += FN * enx + FT * (-eny)
 				Fy += FN * eny + FT * (enx)
-				FxN += FN * enx 
-				FyN += FN * eny 
+				FN_sum += abs(FN)
 			elif self.r["x"] > (self.W - self.rad) and self.in_sile:
 				#import ipdb; ipdb.set_trace()
 				r_dif = self.r["x"] - self.W + self.rad
@@ -200,8 +191,7 @@ class GranularBeeman(Algorithm):
 				FT = - self.kT * r_dif * (-eny * dif_vx + enx * dif_vy) 
 				Fx += FN * enx + FT * (-eny)
 				Fy += FN * eny + FT * enx
-				FxN += FN * enx 
-				FyN += FN * eny 
+				FN_sum += abs(FN)
 			if self.r["y"] < self.rad and (self.W-self.D)/2.0 < self.r["x"] < (self.W+self.D)/2.0:
 				self.in_sile = False 
 				pass
@@ -215,8 +205,7 @@ class GranularBeeman(Algorithm):
 				FT = - self.kT * r_dif * (-eny * dif_vx + enx * dif_vy) 
 				Fx += FN * enx + FT * (-eny)
 				Fy += FN * eny + FT * enx
-				FxN += FN * enx 
-				FyN += FN * eny 
+				FN_sum += abs(FN)
 			elif self.r["y"] > (self.L - self.rad) and self.in_sile:
 				#import ipdb; ipdb.set_trace()
 				r_dif = self.r["y"] - self.L + self.rad
@@ -228,9 +217,8 @@ class GranularBeeman(Algorithm):
 				FT = - self.kT * r_dif * (-eny * dif_vx + enx * dif_vy) 
 				Fx += FN * enx + FT * (-eny)
 				Fy += FN * eny + FT * enx
-				FxN += FN * enx 
-				FyN += FN * eny 
-			self.FN = hypot(FxN,FyN)
+				FN_sum += abs(FN)
+			self.FN = FN_sum
 			return {"x" : -self.gx + Fx/self.m,"y" : -self.g + Fy/self.m}
 
 		def update_r(self, dt):
@@ -285,9 +273,10 @@ class GranularBeeman(Algorithm):
 	def get_energy_sum(self):
 		return sum (map(lambda particle: particle.get_energy(), self.particles))
 
-	def get_info(self, i, L, W, D):
+	def get_info(self, i, L, W):
 		string = ""
 
+		D = 0.0
 		particles = filter(lambda p: p.activated,self.particles)
 		
 		string += '\t' + str(len(self.particles)+len(self.fake_particles)+4) + '\n'
@@ -296,8 +285,8 @@ class GranularBeeman(Algorithm):
 			string += '\t' + str(particle.id) + '\t' + str(particle.r["x"]) + '\t' + str(particle.r["y"]) + '\t' + str(particle.rad) + '\t' + str(particle.v["x"]) + '\t' + str(particle.v["y"]) + '\t' + str(particle.FN) + '\n'
 		for particle in self.fake_particles:
 			string += '\t' + str(particle.id) + '\t' + str(particle.r["x"]) + '\t' + str(particle.r["y"]) + '\t' + str(particle.rad) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
-		string += '\t' + str(len(particles)) + '\t' + str(0) + '\t' + str(-L/10.0) + '\t' + str(0.000000001) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
-		string += '\t' + str(len(particles)+1) + '\t' + str(W) + '\t' + str(-L/10.0) + '\t' + str(0.000000001) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
+		string += '\t' + str(len(particles)) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0.000000001) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
+		string += '\t' + str(len(particles)+1) + '\t' + str(W) + '\t' + str(0) + '\t' + str(0.000000001) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
 		string += '\t' + str(len(particles)+2) + '\t' + str(0) + '\t' + str(L) + '\t' + str(0.000000001) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
 		string += '\t' + str(len(particles)+3) + '\t' + str(W) + '\t' + str(L) + '\t' + str(0.000000001) + '\t' + str(0) + '\t' + str(0) + '\t' + str(0) + '\n'
 		#ipdb.set_trace()

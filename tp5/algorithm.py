@@ -4,8 +4,8 @@ class Algorithm(object):
 	def __init__(self):
 		pass
 
-	def loop(self):
-		self.basic_loop()
+	def loop(self,t):
+		self.basic_loop(t)
 		
 	def get_info(self, i, L, W, D):
 		string = ""
@@ -21,7 +21,7 @@ class Algorithm(object):
 		#ipdb.set_trace()
 		return string
 
-	def basic_loop(self):
+	def basic_loop(self,t):
 		raise "Not implemented method"
 
 	def get_error(self,correct_history):
